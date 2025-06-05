@@ -27,11 +27,14 @@ pub fn run_ui(apps: Vec<AppEntry>, show_icons: bool) -> io::Result<()> {
     let mut filter = String::new();
     let mut selected = 0;
 
+    let mut lastIconPath: Option<std::path::PathBuf> = None;
+
     loop {
         let filtered: Vec<_> = apps.iter()
             .filter(|a| a.name.to_lowercase().contains(&filter.to_lowercase()))
             .collect();
 
+        let tsize = terminal.size().unwrap();
         terminal.draw(|f| {
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
@@ -62,11 +65,22 @@ pub fn run_ui(apps: Vec<AppEntry>, show_icons: bool) -> io::Result<()> {
             f.render_stateful_widget(list, chunks[2], &mut state);
 
             // Icon rendering (Kitty required)
+            let mut config = viuer::Config::default();
+            config.x = tsize.width.saturating_sub(15) as u16 - 1;
+            config.y = tsize.height.saturating_sub(7) as i16 - 1;
+            config.width = Some(14);
+            config.height = Some(6);
+
             if show_icons {
                 if let Some(app) = filtered.get(selected) {
-                    if let Some(icon_path) = &app.icon_path {
-                        if let Ok(img) = image::open(icon_path) {
-                            let _ = viuer::print(&img, &viuer::Config::default());
+                    if (lastIconPath != app.icon_path) {
+                        let black = image::DynamicImage::new_rgb8(96, 96); // 6x6 terminal cells ≈ 96x96 px
+                                let _ = viuer::print(&black, &config);
+                        if let Some(icon_path) = &app.icon_path {
+                            if let Ok(img) = image::open(icon_path) {
+                                let _ = viuer::print(&img, &config); // viuer::Config::default()
+                                lastIconPath = app.icon_path.clone();
+                            }
                         }
                     }
                 }
