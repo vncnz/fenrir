@@ -1,0 +1,108 @@
+use crate::app::AppEntry;
+use ratatui::{
+    backend::CrosstermBackend,
+    layout::{Constraint, Direction, Layout},
+    style::{Style, Color},
+    widgets::{Block, Borders, List, ListItem, Paragraph},
+    Terminal,
+};
+use crossterm::event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode};
+use crossterm::terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen};
+use std::io;
+use std::process::Command;
+use std::fs;
+use std::path::Path;
+
+pub fn run_ui(apps: Vec<AppEntry>, show_icons: bool) -> io::Result<()> {
+    enable_raw_mode()?;
+    let mut stdout = io::stdout();
+    crossterm::execute!(
+        stdout,
+        EnterAlternateScreen,
+        EnableMouseCapture
+    )?;
+    let backend = CrosstermBackend::new(stdout);
+    let mut terminal = Terminal::new(backend)?;
+
+    let mut filter = String::new();
+    let mut selected = 0;
+
+    loop {
+        let filtered: Vec<_> = apps.iter()
+            .filter(|a| a.name.to_lowercase().contains(&filter.to_lowercase()))
+            .collect();
+
+        terminal.draw(|f| {
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .margin(1)
+                .constraints([
+                    Constraint::Length(1),
+                    Constraint::Length(3),
+                    Constraint::Min(0),
+                ])
+                .split(f.size());
+
+            let status = Paragraph::new("[ metrics provided by external JSON in /tmp ]");
+            f.render_widget(status, chunks[0]);
+
+            let input = Paragraph::new(format!("Filter: {}", filter));
+            f.render_widget(input, chunks[1]);
+
+            let items: Vec<_> = filtered.iter()
+                .map(|a| ListItem::new(format!("{}", a.name)))
+                .collect();
+
+            let list = List::new(items)
+                .block(Block::default().borders(Borders::ALL).title("Applications"))
+                .highlight_style(Style::default().bg(Color::Blue));
+
+            let mut state = ratatui::widgets::ListState::default();
+            state.select(Some(selected));
+            f.render_stateful_widget(list, chunks[2], &mut state);
+
+            // Icon rendering (Kitty required)
+            if show_icons {
+                if let Some(app) = filtered.get(selected) {
+                    if let Some(icon_path) = &app.icon_path {
+                        if let Ok(img) = image::open(icon_path) {
+                            let _ = viuer::print(&img, &viuer::Config::default());
+                        }
+                    }
+                }
+            }
+        })?;
+
+        if event::poll(std::time::Duration::from_millis(100))? {
+            match event::read()? {
+                Event::Key(key) => match key.code {
+                    KeyCode::Char(c) => filter.push(c),
+                    KeyCode::Backspace => { filter.pop(); },
+                    KeyCode::Up => { if selected > 0 { selected -= 1; } },
+                    KeyCode::Down => { if selected + 1 < filtered.len() { selected += 1; } },
+                    KeyCode::Enter => {
+                        if let Some(app) = filtered.get(selected) {
+                            let _ = Command::new("sh")
+                                .arg("-c")
+                                .arg(&app.exec)
+                                .spawn();
+                        }
+                    },
+                    KeyCode::Esc => break,
+                    _ => {}
+                },
+                _ => {}
+            }
+        }
+    }
+
+    disable_raw_mode()?;
+    crossterm::execute!(
+        terminal.backend_mut(),
+        LeaveAlternateScreen,
+        DisableMouseCapture
+    )?;
+    terminal.show_cursor()?;
+
+    Ok(())
+}
