@@ -3,6 +3,12 @@ Skoll is, in norse mythology, a wolf who chases the sun, causing eclipses. And i
 
 Please note that this is a personal project, for personal use, developed in my (not so much) free time. You'll not find clean code or a flexible, modular system here. You'll find lots of experiments, abandoned ideas, dead code, temporary hacks and workarounds. Oh, and last but not least, I'm just learning both Rust and GTK. You've been warned.
 
+# To be added
+- Network info
+- Brightness?
+- Follow volume changes instead of polling
+- Follow network changes instead of polling
+
 ### known bugs
 [ ] Nerd icons are too small: using ttf-roboto-mono-nerd?
 [ ] Sometimes the app icon don't show up
