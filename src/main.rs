@@ -5,6 +5,7 @@
 mod app;
 // mod sysinfo;
 mod ui;
+mod data_sources;
 
 use crate::app::AppEntry;
 use crate::ui::run_ui;

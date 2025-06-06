@@ -1,4 +1,5 @@
 use crate::app::AppEntry;
+use crate::data_sources::read_ratatoskr;
 use ratatui::{
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout},
@@ -12,6 +13,8 @@ use std::io;
 use std::process::Command;
 use std::fs;
 use std::path::Path;
+
+use std::sync::mpsc::{Sender, Receiver, channel};
 
 pub fn run_ui(apps: Vec<AppEntry>, show_icons: bool) -> io::Result<()> {
     enable_raw_mode()?;
@@ -27,9 +30,24 @@ pub fn run_ui(apps: Vec<AppEntry>, show_icons: bool) -> io::Result<()> {
     let mut filter = String::new();
     let mut selected = 0;
 
-    let mut lastIconPath: Option<std::path::PathBuf> = None;
+    let mut last_icon_path: Option<std::path::PathBuf> = None;
+    let mut sysinfo = Paragraph::default();
+
+    let (sender, receiver) = channel::<Paragraph>();
+    std::thread::spawn(move || {
+        let mut counter = 0;
+        loop {
+            if counter % 2 == 0 { read_ratatoskr( sender.clone()); }
+            counter += 1;
+            std::thread::sleep(std::time::Duration::from_secs(1));
+        }
+    });
 
     loop {
+        if let Ok(data) = receiver.try_recv() {
+            sysinfo = data.clone();
+        }
+
         let filtered: Vec<_> = apps.iter()
             .filter(|a| a.name.to_lowercase().contains(&filter.to_lowercase()))
             .collect();
@@ -46,8 +64,7 @@ pub fn run_ui(apps: Vec<AppEntry>, show_icons: bool) -> io::Result<()> {
                 ])
                 .split(f.size());
 
-            let status = Paragraph::new("[ metrics provided by external JSON in /tmp ]");
-            f.render_widget(status, chunks[0]);
+            f.render_widget(&sysinfo, chunks[0]);
 
             let input = Paragraph::new(format!("Filter: {}", filter));
             f.render_widget(input, chunks[1]);
@@ -73,13 +90,13 @@ pub fn run_ui(apps: Vec<AppEntry>, show_icons: bool) -> io::Result<()> {
 
             if show_icons {
                 if let Some(app) = filtered.get(selected) {
-                    if (lastIconPath != app.icon_path) {
+                    if (last_icon_path != app.icon_path) {
                         let black = image::DynamicImage::new_rgb8(96, 96); // 6x6 terminal cells ≈ 96x96 px
                                 let _ = viuer::print(&black, &config);
                         if let Some(icon_path) = &app.icon_path {
                             if let Ok(img) = image::open(icon_path) {
                                 let _ = viuer::print(&img, &config); // viuer::Config::default()
-                                lastIconPath = app.icon_path.clone();
+                                last_icon_path = app.icon_path.clone();
                             }
                         }
                     }
@@ -90,7 +107,7 @@ pub fn run_ui(apps: Vec<AppEntry>, show_icons: bool) -> io::Result<()> {
         if event::poll(std::time::Duration::from_millis(100))? {
             match event::read()? {
                 Event::Key(key) => match key.code {
-                    KeyCode::Char(c) => filter.push(c),
+                    KeyCode::Char(c) => { filter.push(c); selected = 0; },
                     KeyCode::Backspace => { filter.pop(); },
                     KeyCode::Up => { if selected > 0 { selected -= 1; } },
                     KeyCode::Down => { if selected + 1 < filtered.len() { selected += 1; } },
