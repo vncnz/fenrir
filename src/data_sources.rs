@@ -98,6 +98,20 @@ pub fn read_ratatoskr (sender: Sender<Paragraph>) {
                 spans.push(Span::styled(format!(" [DSK {used_percent}%]"), Style::default().fg(hex_to_color(color).unwrap())));
             }
 
+            if let (Some(temp), Some(color)) = extract_json!(&data => {
+                "temperature.value" => as_f64,
+                "temperature.color" => as_str
+            }) {
+                spans.push(Span::styled(format!(" [TEMP {:.0}%]", temp), Style::default().fg(hex_to_color(color).unwrap())));
+            }
+
+            if let (Some(value), Some(color)) = extract_json!(&data => {
+                "volume.value" => as_u64,
+                "volume.color" => as_str
+            }) {
+                spans.push(Span::styled(format!(" [VOL {}%]", value), Style::default().fg(hex_to_color(color).unwrap())));
+            }
+
             if let (Some(wea_temp), Some(wea_symb), Some(_wea_icon), Some(wea_text)) = extract_json!(&data => {
                 "weather.temp" => as_i64,
                 "weather.temp_unit" => as_str,
