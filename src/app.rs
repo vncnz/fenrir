@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::{PathBuf};
 use std::error::Error;
 
 #[derive(Debug, Clone)]
@@ -7,7 +7,7 @@ pub struct AppEntry {
     pub name: String,
     pub exec: String,
     pub icon_path: Option<PathBuf>,
-    pub comment: Option<String>,
+    // pub comment: Option<String>
 }
 
 pub fn load_app_entries() -> Result<Vec<AppEntry>, Box<dyn Error>> {
@@ -21,7 +21,7 @@ pub fn load_app_entries() -> Result<Vec<AppEntry>, Box<dyn Error>> {
             let name = extract_field(&contents, "Name").unwrap_or_default();
             let exec = extract_field(&contents, "Exec").unwrap_or_default();
             let icon = extract_field(&contents, "Icon");
-            let comment = extract_field(&contents, "Comment");
+            // let comment = extract_field(&contents, "Comment");
 
             let icon_path = icon.and_then(resolve_icon_path);
 
@@ -29,7 +29,7 @@ pub fn load_app_entries() -> Result<Vec<AppEntry>, Box<dyn Error>> {
                 name,
                 exec,
                 icon_path,
-                comment,
+                // comment,
             });
         }
     }

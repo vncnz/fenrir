@@ -1,11 +1,9 @@
-use bytesize::ByteSize;
 use serde_json::Value;
 use std::fs;
-use std::path::Path;
-use std::sync::mpsc::{Sender, Receiver, channel};
+use std::sync::mpsc::{Sender};
 
 use ratatui::{
-    style::{Color, Style, Stylize},
+    style::{Color, Style},
     text::{Line, Span},
     widgets::Paragraph,
 };
@@ -68,31 +66,6 @@ pub fn read_ratatoskr (sender: Sender<Paragraph>) {
         if let Ok(data) = res {
             let mut spans = Vec::<Span>::new();
 
-            // let tmh = ByteSize::b(tm).display().iec().to_string();
-            if let (Some(memory_percent), Some(mem_color)) = extract_json!(&data => {
-                // "ram.total_memory" => tm: as_u64,
-                "ram.mem_percent" => as_u64,
-                "ram.mem_color" => as_str
-            }) {
-                spans.push(Span::styled(format!("[MEM {memory_percent}%]"), Style::default().fg(hex_to_color(mem_color).unwrap())));
-            }
-
-            if let (Some(swap_percent), Some(swap_color)) = extract_json!(&data => {
-                "ram.swap_percent" => as_u64,
-                "ram.swap_color" => as_str
-            }) {
-                spans.push(Span::styled(format!(" [SWAP {swap_percent}%]"), Style::default().fg(hex_to_color(swap_color).unwrap())));
-            }
-
-            if let (Some(wea_temp), Some(wea_symb), Some(wea_icon), Some(wea_text)) = extract_json!(&data => {
-                "weather.temp" => as_i64,
-                "weather.temp_unit" => as_str,
-                "weather.icon" => as_str,
-                "weather.text" => as_str
-            }) {
-                spans.push(Span::raw(format!(" [{} {}{}]", wea_text, wea_temp, wea_symb)));
-            }
-            
             if let (Some(avg_m1), Some(avg_m5), Some(avg_m15), Some(avg_color)) = extract_json!(&data => {
                 "loadavg.m1" => as_f64,
                 "loadavg.m5" => as_f64,
@@ -100,6 +73,38 @@ pub fn read_ratatoskr (sender: Sender<Paragraph>) {
                 "loadavg.color" => as_str
             }) {
                 spans.push(Span::styled(format!("[AVG {avg_m1} {avg_m5} {avg_m15}]"), Style::default().fg(hex_to_color(avg_color).unwrap())));
+            }
+
+            // let tmh = ByteSize::b(tm).display().iec().to_string();
+            if let (Some(memory_percent), Some(mem_color)) = extract_json!(&data => {
+                // "ram.total_memory" => tm: as_u64,
+                "ram.mem_percent" => as_u64,
+                "ram.mem_color" => as_str
+            }) {
+                spans.push(Span::styled(format!(" [MEM {memory_percent}%]"), Style::default().fg(hex_to_color(mem_color).unwrap())));
+            }
+
+            if let (Some(swap_percent), Some(swap_color)) = extract_json!(&data => {
+                "ram.swap_percent" => as_u64,
+                "ram.swap_color" => as_str
+            }) {
+                spans.push(Span::styled(format!(" [SWP {swap_percent}%]"), Style::default().fg(hex_to_color(swap_color).unwrap())));
+            }
+
+            if let (Some(used_percent), Some(color)) = extract_json!(&data => {
+                "disk.used_percent" => as_u64,
+                "disk.color" => as_str
+            }) {
+                spans.push(Span::styled(format!(" [DSK {used_percent}%]"), Style::default().fg(hex_to_color(color).unwrap())));
+            }
+
+            if let (Some(wea_temp), Some(wea_symb), Some(_wea_icon), Some(wea_text)) = extract_json!(&data => {
+                "weather.temp" => as_i64,
+                "weather.temp_unit" => as_str,
+                "weather.icon" => as_str,
+                "weather.text" => as_str
+            }) {
+                spans.push(Span::raw(format!(" [{} {}{}]", wea_text, wea_temp, wea_symb)));
             }
 
             let paragraph = Paragraph::new(Line::from(spans));

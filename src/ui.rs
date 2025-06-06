@@ -11,10 +11,8 @@ use crossterm::event::{self, DisableMouseCapture, EnableMouseCapture, Event, Key
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen};
 use std::io;
 use std::process::Command;
-use std::fs;
-use std::path::Path;
 
-use std::sync::mpsc::{Sender, Receiver, channel};
+use std::sync::mpsc::{channel};
 
 pub fn run_ui(apps: Vec<AppEntry>, show_icons: bool) -> io::Result<()> {
     enable_raw_mode()?;
@@ -62,7 +60,7 @@ pub fn run_ui(apps: Vec<AppEntry>, show_icons: bool) -> io::Result<()> {
                     Constraint::Length(1),
                     Constraint::Min(0),
                 ])
-                .split(f.size());
+                .split(f.area());
 
             f.render_widget(&sysinfo, chunks[0]);
 
@@ -90,7 +88,7 @@ pub fn run_ui(apps: Vec<AppEntry>, show_icons: bool) -> io::Result<()> {
 
             if show_icons {
                 if let Some(app) = filtered.get(selected) {
-                    if (last_icon_path != app.icon_path) {
+                    if last_icon_path != app.icon_path {
                         let black = image::DynamicImage::new_rgb8(96, 96); // 6x6 terminal cells ≈ 96x96 px
                                 let _ = viuer::print(&black, &config);
                         if let Some(icon_path) = &app.icon_path {

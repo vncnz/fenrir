@@ -7,7 +7,6 @@ mod app;
 mod ui;
 mod data_sources;
 
-use crate::app::AppEntry;
 use crate::ui::run_ui;
 use std::env;
 use std::error::Error;
