@@ -5,3 +5,4 @@ Please note that this is a personal project, for personal use, developed in my (
 
 ### known bugs
 [ ] Nerd icons are too small: using ttf-roboto-mono-nerd?
+[ ] Sometimes the app icon don't show up

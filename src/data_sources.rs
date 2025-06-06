@@ -51,7 +51,7 @@ pub fn read_ratatoskr (sender: Sender<Paragraph>) {
     if let Ok(contents) = fs::read_to_string("/tmp/ratatoskr.json") {
         let res: Result<Value, serde_json::Error> = serde_json::from_str(&contents);
         if let Ok(data) = res {
-                if let Some((tm, memory_percent, ts, swap_percent, mem_color, swap_color, wea_temp, wea_symb, wea_icon)) = extract_json!(&data => {
+                if let Some((tm, memory_percent, ts, swap_percent, mem_color, swap_color, wea_temp, wea_symb, wea_icon, wea_text)) = extract_json!(&data => {
                     "ram.total_memory" => tm: as_u64,
                     "ram.mem_percent" => memory_percent: as_u64,
                     "ram.total_swap" => ts: as_u64,
@@ -60,17 +60,18 @@ pub fn read_ratatoskr (sender: Sender<Paragraph>) {
                     "ram.swap_color" => swap_color: as_str,
                     "weather.temp" => wea_temp: as_i64,
                     "weather.temp_unit" => wea_symb: as_str,
-                    "weather.icon" => wea_icon: as_str
+                    "weather.icon" => wea_icon: as_str,
+                    "weather.text" => wea_text: as_str
                 }) {
                 // let line = format!("{tm} {um} {ts} {us}");
 
-                let tmh = ByteSize::b(tm).display().iec().to_string();
-                let tsh = ByteSize::b(ts).display().iec().to_string();
+                // let tmh = ByteSize::b(tm).display().iec().to_string();
+                // let tsh = ByteSize::b(ts).display().iec().to_string();
 
                 let paragraph = Paragraph::new(Line::from(vec![
-                    Span::styled(format!("[MEM] {:.0}%", memory_percent), Style::default().fg(hex_to_color(mem_color).unwrap())),
-                    Span::styled(format!("(󰍛): {:.0}% of {}", swap_percent, tsh), Style::default().fg(hex_to_color(swap_color).unwrap())),
-                    Span::raw(format!("{}{}{}", wea_icon, wea_temp, wea_symb))
+                    Span::styled(format!("[MEM {memory_percent}%]"), Style::default().fg(hex_to_color(mem_color).unwrap())),
+                    Span::styled(format!(" [SWAP {swap_percent}%]"), Style::default().fg(hex_to_color(swap_color).unwrap())),
+                    Span::raw(format!(" [{} {}{}]", wea_text, wea_temp, wea_symb))
                 ]));
 
                 sender.send(paragraph).expect("Send error");

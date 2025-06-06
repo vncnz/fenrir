@@ -58,8 +58,8 @@ pub fn run_ui(apps: Vec<AppEntry>, show_icons: bool) -> io::Result<()> {
                 .direction(Direction::Vertical)
                 .margin(1)
                 .constraints([
+                    Constraint::Length(2),
                     Constraint::Length(1),
-                    Constraint::Length(3),
                     Constraint::Min(0),
                 ])
                 .split(f.size());
