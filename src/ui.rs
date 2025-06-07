@@ -14,6 +14,21 @@ use std::process::Command;
 
 use std::sync::mpsc::{channel};
 
+pub fn launch_detached(app: &AppEntry) {
+    let exec = &app.exec;
+
+    // Usa setsid per lanciare in una nuova sessione (detached)
+    let result = Command::new("setsid")
+        .arg("sh")
+        .arg("-c")
+        .arg(exec)
+        .spawn();
+
+    if let Err(e) = result {
+        eprintln!("Failed to launch '{}': {}", exec, e);
+    }
+}
+
 pub fn run_ui(apps: Vec<AppEntry>, show_icons: bool) -> io::Result<()> {
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -111,10 +126,11 @@ pub fn run_ui(apps: Vec<AppEntry>, show_icons: bool) -> io::Result<()> {
                     KeyCode::Down => { if selected + 1 < filtered.len() { selected += 1; } },
                     KeyCode::Enter => {
                         if let Some(app) = filtered.get(selected) {
-                            let _ = Command::new("sh")
+                            /* let _ = Command::new("sh")
                                 .arg("-c")
                                 .arg(&app.exec)
-                                .spawn();
+                                .spawn(); */
+                            launch_detached(app);
                         }
                     },
                     KeyCode::Esc => break,
