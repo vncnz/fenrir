@@ -131,6 +131,7 @@ pub fn run_ui(apps: Vec<AppEntry>, show_icons: bool) -> io::Result<()> {
                                 .arg(&app.exec)
                                 .spawn(); */
                             launch_detached(app);
+                            break;
                         }
                     },
                     KeyCode::Esc => break,
