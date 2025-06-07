@@ -10,18 +10,28 @@ use ratatui::{
 use crossterm::event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode};
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen};
 use std::io;
-use std::process::Command;
+use std::process::{Command, Stdio};
+use std::fs::OpenOptions;
 
 use std::sync::mpsc::{channel};
 
 pub fn launch_detached(app: &AppEntry) {
     let exec = &app.exec;
 
-    // Usa setsid per lanciare in una nuova sessione (detached)
+    // Log file in caso di errori
+    let log_file = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open("/tmp/fenrir-launcher.log")
+        .unwrap_or_else(|_| std::fs::File::create("/dev/null").unwrap());
+
     let result = Command::new("setsid")
         .arg("sh")
         .arg("-c")
         .arg(exec)
+        .stdin(Stdio::null())
+        .stdout(Stdio::from(log_file.try_clone().unwrap()))
+        .stderr(Stdio::from(log_file))
         .spawn();
 
     if let Err(e) = result {
@@ -131,6 +141,8 @@ pub fn run_ui(apps: Vec<AppEntry>, show_icons: bool) -> io::Result<()> {
                                 .arg(&app.exec)
                                 .spawn(); */
                             launch_detached(app);
+                            std::thread::sleep(std::time::Duration::from_millis(600));
+
                             break;
                         }
                     },
