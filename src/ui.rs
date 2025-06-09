@@ -93,7 +93,7 @@ pub fn run_ui(apps: Vec<AppEntry>, show_icons: bool) -> io::Result<()> {
             f.render_widget(input, chunks[1]);
 
             let items: Vec<_> = filtered.iter()
-                .map(|a| ListItem::new(format!("{}", a.name)))
+                .map(|a| ListItem::new(format!("{} {} - {} - {}", if a.terminal { "" } else { "" }, a.name, a.exec, a.comment)))
                 .collect();
 
             let list = List::new(items)

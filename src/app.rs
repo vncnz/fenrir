@@ -7,10 +7,43 @@ pub struct AppEntry {
     pub name: String,
     pub exec: String,
     pub icon_path: Option<PathBuf>,
-    // pub comment: Option<String>
+    pub comment: String,
+    pub terminal: bool
 }
 
+use freedesktop_desktop_entry::{default_paths, get_languages_from_env, Iter, PathSource};
+
 pub fn load_app_entries() -> Result<Vec<AppEntry>, Box<dyn Error>> {
+
+    let mut results = vec![];
+    let locales = get_languages_from_env();
+
+    let entries = Iter::new(default_paths())
+        .entries(Some(&locales))
+        .collect::<Vec<_>>();
+    
+    for entry in entries {
+        let path_src = PathSource::guess_from(&entry.path);
+
+        println!("{:?}: {}\n---\n{}", path_src, entry.path.display(), entry);
+        if (&entry).no_display() == false {
+            results.push(AppEntry {
+                exec: (&entry).exec().unwrap_or_default().to_string(),
+                name: (&entry).name(&vec!["en"]).as_ref().unwrap().to_string(),
+                icon_path: resolve_icon_path((&entry).icon().unwrap_or_default().to_string()),
+                comment: (&entry).comment(&vec!["en"]).unwrap_or_default().to_string(),
+                terminal: (&entry).terminal()
+            });
+        }
+    }
+
+    Ok(results)
+}
+
+
+
+
+pub fn load_app_entries_OLD() -> Result<Vec<AppEntry>, Box<dyn Error>> {
     let mut entries = vec![];
     let paths = fs::read_dir("/usr/share/applications")?;
     
@@ -21,7 +54,7 @@ pub fn load_app_entries() -> Result<Vec<AppEntry>, Box<dyn Error>> {
             let name = extract_field(&contents, "Name").unwrap_or_default();
             let exec = extract_field(&contents, "Exec").unwrap_or_default();
             let icon = extract_field(&contents, "Icon");
-            // let comment = extract_field(&contents, "Comment");
+            let comment = extract_field(&contents, "Comment").unwrap_or_default();
 
             let icon_path = icon.and_then(resolve_icon_path);
 
@@ -29,7 +62,8 @@ pub fn load_app_entries() -> Result<Vec<AppEntry>, Box<dyn Error>> {
                 name,
                 exec,
                 icon_path,
-                // comment,
+                comment,
+                terminal: false
             });
         }
     }
