@@ -12,6 +12,35 @@ pub struct AppEntry {
 
 pub fn load_app_entries() -> Result<Vec<AppEntry>, Box<dyn Error>> {
     let mut entries = vec![];
+    let apps = gio::AppInfo::all();
+    // let exclude = RegexSet::new(&config.exclude).expect("Invalid regex");
+    
+    for entry in apps {
+        let name = app.display_name().to_string();
+
+        let path = entry?.path();
+        if path.extension().map(|ext| ext == "desktop").unwrap_or(false) {
+            let contents = fs::read_to_string(&path)?;
+            
+            let exec = extract_field(&contents, "Exec").unwrap_or_default();
+            let icon = extract_field(&contents, "Icon");
+            // let comment = extract_field(&contents, "Comment");
+
+            let icon_path = entry.icon();
+
+            entries.push(AppEntry {
+                name,
+                exec,
+                icon_path,
+                // comment,
+            });
+        }
+    }
+    Ok(entries)
+}
+
+pub fn load_app_entries_OLD() -> Result<Vec<AppEntry>, Box<dyn Error>> {
+    let mut entries = vec![];
     let paths = fs::read_dir("/usr/share/applications")?;
     
     for entry in paths {

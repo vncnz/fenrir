@@ -66,6 +66,16 @@ pub fn read_ratatoskr (sender: Sender<Paragraph>) {
         if let Ok(data) = res {
             let mut spans = Vec::<Span>::new();
 
+            if let Some(metronome) = extract_json!(&data => {
+                "metronome" => as_bool
+            }) {
+                if metronome {
+                    spans.push(Span::styled(" ", Style::default().fg(Color::LightBlue)));
+                } else {
+                    spans.push(Span::styled(" ", Style::default().fg(Color::LightBlue)));
+                }
+            }
+
             if let (Some(avg_m1), Some(avg_m5), Some(avg_m15), Some(avg_color)) = extract_json!(&data => {
                 "loadavg.m1" => as_f64,
                 "loadavg.m5" => as_f64,
