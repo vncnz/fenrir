@@ -125,10 +125,14 @@ pub fn read_ratatoskr (sender: Sender<Paragraph>) {
             sender.send(paragraph).expect("Send error");
         } else {
             // File exists but contains shit
-            println!("File exists but contains shit");
+            // println!("File exists but contains shit");
+            let paragraph = Paragraph::new(Span::styled("File exists but contains shit", Style::default().fg(Color::LightRed)));
+        sender.send(paragraph).expect("Send error");
         }
     } else {
         // No file
-        println!("No file");
+        // println!("No file");
+        let paragraph = Paragraph::new(Span::styled("No sysinfo file, maybe you missed to start Ratatoskr?", Style::default().fg(Color::LightMagenta)));
+        sender.send(paragraph).expect("Send error");
     }
 }

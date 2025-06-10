@@ -3,6 +3,7 @@ use crate::data_sources::read_ratatoskr;
 use ratatui::{
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout},
+    text::{Line, Span},
     style::{Style, Color},
     widgets::{Block, Borders, List, ListItem, Paragraph},
     Terminal,
@@ -12,11 +13,14 @@ use crossterm::terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScree
 use std::io;
 use std::process::{Command, Stdio};
 use std::fs::OpenOptions;
-
 use std::sync::mpsc::{channel};
+use regex::Regex;
+
 
 pub fn launch_detached(app: &AppEntry) {
-    let exec = &app.exec;
+    // let exec = &app.exec;
+    let re = Regex::new(r"%[UufFdDnNickvm]").unwrap();
+    let exec = re.replace_all(&app.exec, "").to_string();
 
     // Log file in caso di errori
     let log_file = OpenOptions::new()
@@ -28,7 +32,7 @@ pub fn launch_detached(app: &AppEntry) {
     let result = Command::new("setsid")
         .arg("sh")
         .arg("-c")
-        .arg(exec)
+        .arg(&exec)
         .stdin(Stdio::null())
         .stdout(Stdio::from(log_file.try_clone().unwrap()))
         .stderr(Stdio::from(log_file))
@@ -93,7 +97,15 @@ pub fn run_ui(apps: Vec<AppEntry>, show_icons: bool) -> io::Result<()> {
             f.render_widget(input, chunks[1]);
 
             let items: Vec<_> = filtered.iter()
-                .map(|a| ListItem::new(format!("{} {} - {} - {}", if a.terminal { "" } else { "" }, a.name, a.exec, a.comment)))
+                .map(|a| ListItem::new(
+                    // format!("{} {} - {} - {}", if a.terminal { "" } else { "" }, a.name, a.exec, a.comment)
+                    Line::from(vec![
+                        Span::styled(if a.terminal { "" } else { "" }, Style::default().fg(Color::Gray)),
+                        Span::styled(format!(" {}", a.name), Style::default()),
+                        Span::styled(format!(" {}", a.exec), Style::default().fg(Color::Yellow)),
+                        Span::styled(format!(" {}", a.comment), Style::default().fg(Color::Rgb(128,128,128))),
+                    ])
+                ))
                 .collect();
 
             let list = List::new(items)

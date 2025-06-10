@@ -453,6 +453,7 @@ dependencies = [
  "freedesktop-desktop-entry",
  "image",
  "ratatui",
+ "regex",
  "serde",
  "serde_derive",
  "serde_json",
