@@ -59,12 +59,25 @@ macro_rules! extract_json {
 
 
 
-
+use std::time::{SystemTime, UNIX_EPOCH};
 pub fn read_ratatoskr (sender: Sender<Paragraph>) {
     if let Ok(contents) = fs::read_to_string("/tmp/ratatoskr.json") {
         let res: Result<Value, serde_json::Error> = serde_json::from_str(&contents);
         if let Ok(data) = res {
             let mut spans = Vec::<Span>::new();
+
+            if let Some(written_at) = extract_json!(&data => {
+                "written_at" => as_u64
+            }) {
+                let saved_time = UNIX_EPOCH + std::time::Duration::from_secs(written_at);
+                let now = SystemTime::now();
+                let diff = now.duration_since(saved_time).expect("Big bang is in the future?!");
+                let secs = diff.as_secs();
+
+                if secs > 2 {
+                    spans.push(Span::styled(format!("[OLD {secs}s]"), Style::default().fg(Color::LightRed)));
+                }
+            }
 
             if let (Some(avg_m1), Some(avg_m5), Some(avg_m15), Some(avg_color)) = extract_json!(&data => {
                 "loadavg.m1" => as_f64,

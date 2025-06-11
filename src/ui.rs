@@ -64,7 +64,7 @@ pub fn run_ui(apps: Vec<AppEntry>, show_icons: bool) -> io::Result<()> {
     std::thread::spawn(move || {
         let mut counter = 0;
         loop {
-            if counter % 2 == 0 { read_ratatoskr( sender.clone()); }
+            /* if counter % 2 == 0 */ { read_ratatoskr( sender.clone()); }
             counter += 1;
             std::thread::sleep(std::time::Duration::from_secs(1));
         }
