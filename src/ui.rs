@@ -10,7 +10,7 @@ use ratatui::{
 };
 use crossterm::event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode};
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen};
-use std::io;
+use std::{io, time::Instant};
 use std::process::{Command, Stdio};
 use std::fs::OpenOptions;
 use std::sync::mpsc::{channel};
@@ -43,7 +43,8 @@ pub fn launch_detached(app: &AppEntry) {
     }
 }
 
-pub fn run_ui(apps: Vec<AppEntry>, show_icons: bool) -> io::Result<()> {
+pub fn run_ui(apps: Vec<AppEntry>, show_icons: bool, t0: Instant) -> io::Result<()> {
+    let mut t1: Option<Instant> = None;
     enable_raw_mode()?;
     let mut stdout = io::stdout();
     crossterm::execute!(
@@ -137,6 +138,10 @@ pub fn run_ui(apps: Vec<AppEntry>, show_icons: bool) -> io::Result<()> {
                     }
                 }
             }
+
+            if t1 == None {
+                t1 = Some(Instant::now());
+            }
         })?;
 
         if event::poll(std::time::Duration::from_millis(100))? {
@@ -173,6 +178,8 @@ pub fn run_ui(apps: Vec<AppEntry>, show_icons: bool) -> io::Result<()> {
         DisableMouseCapture
     )?;
     terminal.show_cursor()?;
+
+    println!("🖼️ Window realized at {:?}", t1.unwrap() - t0);
 
     Ok(())
 }
