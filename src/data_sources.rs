@@ -115,7 +115,9 @@ pub fn read_ratatoskr (sender: Sender<Paragraph>) {
                 "temperature.value" => as_f64,
                 "temperature.color" => as_str
             }) {
-                spans.push(Span::styled(format!(" [TEMP {:.0}%]", temp), Style::default().fg(hex_to_color(color).unwrap())));
+                if temp > 0.0 {
+                    spans.push(Span::styled(format!(" [TEMP {:.0}%]", temp), Style::default().fg(hex_to_color(color).unwrap())));
+                }
             }
 
             if let (Some(value), Some(color)) = extract_json!(&data => {
