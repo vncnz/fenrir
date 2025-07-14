@@ -122,7 +122,8 @@ pub fn read_ratatoskr (sender: Sender<Paragraph>) {
                 "volume.value" => as_u64,
                 "volume.color" => as_str
             }) {
-                spans.push(Span::styled(format!(" [VOL {}%]", value), Style::default().fg(hex_to_color(color).unwrap())));
+                if value > 0 { spans.push(Span::styled(format!(" [VOL {}%]", value), Style::default().fg(hex_to_color(color).unwrap()))); }
+                else { spans.push(Span::styled(" [MUTED]", Style::default().fg(hex_to_color(color).unwrap()))); }
             }
 
             if let (Some(wea_temp), Some(wea_symb), Some(_wea_icon), Some(wea_text)) = extract_json!(&data => {
