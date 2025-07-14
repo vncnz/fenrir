@@ -1,4 +1,4 @@
-use crate::app::AppEntry;
+use crate::app::{load_app_entries, AppEntry};
 use crate::data_sources::read_ratatoskr;
 use ratatui::{
     backend::CrosstermBackend,
@@ -43,8 +43,9 @@ pub fn launch_detached(app: &AppEntry) {
     }
 }
 
-pub fn run_ui(apps: Vec<AppEntry>, show_icons: bool, t0: Instant) -> io::Result<()> {
+pub fn run_ui(show_icons: bool, t0: Instant) -> io::Result<()> {
     let mut t1: Option<Instant> = None;
+    let mut t2: Option<Instant> = None;
     enable_raw_mode()?;
     let mut stdout = io::stdout();
     crossterm::execute!(
@@ -63,20 +64,22 @@ pub fn run_ui(apps: Vec<AppEntry>, show_icons: bool, t0: Instant) -> io::Result<
 
     let (sender, receiver) = channel::<Paragraph>();
     std::thread::spawn(move || {
-        let mut counter = 0;
+        // let mut counter = 0;
         loop {
             /* if counter % 2 == 0 */ { read_ratatoskr( sender.clone()); }
-            counter += 1;
+            // counter += 1;
             std::thread::sleep(std::time::Duration::from_secs(1));
         }
     });
+
+    let mut apps_entries: Vec<AppEntry> = vec![];
 
     loop {
         if let Ok(data) = receiver.try_recv() {
             sysinfo = data.clone();
         }
 
-        let filtered: Vec<_> = apps.iter()
+        let filtered: Vec<_> = apps_entries.iter()
             .filter(|a| a.name.to_lowercase().contains(&filter.to_lowercase()))
             .collect();
 
@@ -169,6 +172,13 @@ pub fn run_ui(apps: Vec<AppEntry>, show_icons: bool, t0: Instant) -> io::Result<
                 _ => {}
             }
         }
+
+        if apps_entries.len() == 0 {
+            apps_entries = load_app_entries().unwrap_or_default();
+            if t2 == None {
+                t2 = Some(Instant::now());
+            }
+        }
     }
 
     disable_raw_mode()?;
@@ -179,7 +189,8 @@ pub fn run_ui(apps: Vec<AppEntry>, show_icons: bool, t0: Instant) -> io::Result<
     )?;
     terminal.show_cursor()?;
 
-    println!("🖼️ Window realized at {:?}", t1.unwrap() - t0);
+    println!("󰹉 Window realized at {:?}", t1.unwrap() - t0);
+    println!("󱡠 App list visible at {:?}", t2.unwrap() - t0);
 
     Ok(())
 }

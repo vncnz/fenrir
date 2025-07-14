@@ -1,4 +1,4 @@
-use std::fs;
+// use std::fs;
 use std::path::{PathBuf};
 use std::error::Error;
 
@@ -11,7 +11,7 @@ pub struct AppEntry {
     pub terminal: bool
 }
 
-use freedesktop_desktop_entry::{default_paths, get_languages_from_env, Iter, PathSource};
+use freedesktop_desktop_entry::{default_paths, get_languages_from_env, Iter};
 
 pub fn load_app_entries() -> Result<Vec<AppEntry>, Box<dyn Error>> {
 
@@ -23,9 +23,8 @@ pub fn load_app_entries() -> Result<Vec<AppEntry>, Box<dyn Error>> {
         .collect::<Vec<_>>();
     
     for entry in entries {
-        let path_src = PathSource::guess_from(&entry.path);
-
-        println!("{:?}: {}\n---\n{}", path_src, entry.path.display(), entry);
+        // let path_src = PathSource::guess_from(&entry.path);
+        // println!("{:?}: {}\n---\n{}", path_src, entry.path.display(), entry);
         if (&entry).no_display() == false {
             results.push(AppEntry {
                 exec: (&entry).exec().unwrap_or_default().to_string(),
@@ -42,7 +41,7 @@ pub fn load_app_entries() -> Result<Vec<AppEntry>, Box<dyn Error>> {
 
 
 
-
+/*
 pub fn load_app_entries_OLD() -> Result<Vec<AppEntry>, Box<dyn Error>> {
     let mut entries = vec![];
     let paths = fs::read_dir("/usr/share/applications")?;
@@ -69,13 +68,15 @@ pub fn load_app_entries_OLD() -> Result<Vec<AppEntry>, Box<dyn Error>> {
     }
     Ok(entries)
 }
-
+*/
+/*
 fn extract_field(contents: &str, field: &str) -> Option<String> {
     contents
         .lines()
         .find(|line| line.starts_with(&format!("{}=", field)))
         .map(|line| line.split_once('=').unwrap().1.trim().to_string())
 }
+*/
 
 fn resolve_icon_path(icon_name: String) -> Option<PathBuf> {
     let candidates = vec![

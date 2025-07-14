@@ -7,7 +7,7 @@ mod app;
 mod ui;
 mod data_sources;
 
-use crate::app::AppEntry;
+// use crate::app::AppEntry;
 use crate::ui::run_ui;
 use std::env;
 use std::error::Error;
@@ -29,7 +29,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
 
     // let apps_empty: Vec<AppEntry> = vec![];
-    let apps = app::load_app_entries()?;
-    run_ui(apps, show_icons, t0)?;
+    // let apps = app::load_app_entries()?;
+    run_ui(show_icons, t0)?;
     Ok(())
 }
