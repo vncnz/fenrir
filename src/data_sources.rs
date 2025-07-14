@@ -126,6 +126,15 @@ pub fn read_ratatoskr (sender: Sender<Paragraph>) {
                 else { spans.push(Span::styled(" [MUTED]", Style::default().fg(hex_to_color(color).unwrap()))); }
             }
 
+            if let (Some(conn_type), signal, color) = extract_json!(&data => {
+                "network.conn_type" => as_str,
+                "network.signal" => as_f64,
+                "network.color" => as_str
+            }) {
+                if conn_type == "ethernet" { spans.push(Span::raw(" [ETH]")); }
+                else { spans.push(Span::styled(format!(" [WLAN {}%]", signal.unwrap()), Style::default().fg(hex_to_color(color.unwrap()).unwrap()))); }
+            }
+
             if let (Some(wea_temp), Some(wea_symb), Some(_wea_icon), Some(wea_text)) = extract_json!(&data => {
                 "weather.temp" => as_i64,
                 "weather.temp_unit" => as_str,
