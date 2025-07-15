@@ -116,7 +116,7 @@ pub fn read_ratatoskr (sender: Sender<Paragraph>) {
                 "temperature.color" => as_str
             }) {
                 if temp > 0.0 {
-                    spans.push(Span::styled(format!(" [TEMP {:.0}%]", temp), Style::default().fg(hex_to_color(color).unwrap())));
+                    spans.push(Span::styled(format!(" [TEMP {:.0}°C]", temp), Style::default().fg(hex_to_color(color).unwrap())));
                 }
             }
 
