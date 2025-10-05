@@ -10,10 +10,8 @@ Please note that this is a personal project, for personal use, developed in my (
 
 ![image](screenshots/screenshot.png)
 
-# To be added
-- Network info
-- Brightness?
-- Follow volume changes instead of polling?
+# TODOs
+- Follow volume changes instead of polling
 
 ### known bugs
 <!-- [ ] Nerd icons are too small: using ttf-roboto-mono-nerd?-->
