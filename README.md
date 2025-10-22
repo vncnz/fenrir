@@ -1,5 +1,5 @@
 # Fenrir
-Skoll is, in norse mythology, a wolf who chases the sun, causing eclipses. And is my gui launcher. So this is Fenrir, Skoll's brother, and is my TUI launcher.
+Skoll is, in norse mythology, a wolf who chases the sun, causing eclipses. And it is my gui launcher. So this is Fenrir, Skoll's brother, and it is my TUI launcher.
 
 After some fine-tuning, on my laptop the TUI appears in ~500µs and app list is ready in ~100ms. You can start typing immediately: your keystrokes won't get lost while the list loads.
 if you are not running Fenrir in an already open terminal, remember to account for the terminal's startup time. In that case, I suggest you to use kitty with --single-instance mode for a blazing fast experience.
