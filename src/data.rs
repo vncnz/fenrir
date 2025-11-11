@@ -1,0 +1,87 @@
+use std::sync::mpsc::{Sender,Receiver,channel};
+use std::os::unix::net::UnixStream;
+use std::io::Read;
+use serde::Deserialize;
+use serde_derive::Deserialize;
+
+#[derive(Default, Deserialize, Debug)]
+pub struct PartialMsg {
+    pub resource: String,
+    pub warning: f64,
+    pub icon: String,
+    pub data: Option<serde_json::Value>,
+}
+
+pub struct FenrirSocket {
+    stream: Option<UnixStream>,
+    path: &'static str,
+    tx: Sender<PartialMsg>,
+    pub rx: Receiver<PartialMsg>
+}
+
+impl FenrirSocket {
+    pub fn new(path: &'static str) -> Self {
+        let (tx, rx) = channel();
+        Self { stream: None, path, tx, rx }
+    }
+
+    pub fn try_connect(&mut self) {
+        if self.stream.is_some() {
+            return;
+        }
+
+        match UnixStream::connect(self.path) {
+            Ok(mut stream) => {
+                println!("Ratatoskr connected");
+                stream.set_nonblocking(true).ok();
+                self.stream = Some(stream);
+                let _ = self.tx.send(PartialMsg {
+                    resource: "ratatoskr".to_string(),
+                    icon: "".into(),
+                    warning: 0.0,
+                    data: None
+                });
+            }
+            Err(_) => {
+                // non connesso, riproveremo
+            }
+        }
+    }
+
+    pub fn poll_messages(&mut self) {
+        if let Some(stream) = self.stream.as_mut() {
+            let mut buf = [0u8; 4096];
+            match stream.read(&mut buf) {
+                Ok(0) => {
+                    // disconnessione
+                    println!("Ratatoskr disconnected");
+                    let _ = self.tx.send(PartialMsg {
+                        resource: "ratatoskr".to_string(),
+                        icon: "".into(),
+                        warning: 1.0,
+                        data: None
+                    });
+                    self.stream = None;
+                }
+                Ok(n) => {
+                    if let Ok(msg) = std::str::from_utf8(&buf[..n]) {
+                        if let Ok(data) = serde_json::from_str::<PartialMsg>(&msg) {
+                            // println!("Messaggio ricevuto: {msg}");
+                            let _ = self.tx.send(data);
+                        }
+                    }
+                }
+                Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                    // nessun dato nuovo
+                }
+                Err(e) => {
+                    eprintln!("Errore socket: {e}");
+                    self.stream = None;
+                }
+            }
+        } else {
+            // tenta di riconnettersi periodicamente
+            self.try_connect();
+        }
+    }
+}

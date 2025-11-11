@@ -4,6 +4,7 @@
 
 mod app;
 // mod sysinfo;
+mod data;
 mod ui;
 mod data_sources;
 
