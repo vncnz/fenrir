@@ -18,7 +18,7 @@ Please note that this is a personal project, for personal use, developed in my (
 ![image](screenshots/screenshot.png)
 
 # TODO
-- Move from json file to socket listening
+- Update to manage sock communication (feeded from sock-ratatoskr)
 
 ### known bugs
 <!-- [ ] Nerd icons are too small: using ttf-roboto-mono-nerd?-->
