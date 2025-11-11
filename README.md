@@ -11,6 +11,7 @@ Please note that this is a personal project, for personal use, developed in my (
 ![image](screenshots/screenshot.png)
 
 # TODOs
+- Update to manage sock communication (feeded from sock-ratatoskr)
 - Follow volume changes instead of polling
 
 ### known bugs
