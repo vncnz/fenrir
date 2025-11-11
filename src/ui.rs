@@ -85,6 +85,9 @@ pub fn run_ui(show_icons: bool, t0: Instant) -> io::Result<()> {
 
         if let Ok(data) = sock.rx.try_recv() {
             // println!("Received: {:?}", data);
+            /*
+                IDEA: get rid of read_ratatoskr and implement a vec! of PartialMsg/Paragraph wgich will be keep updated from socket readings.
+             */
             /* if data.resource == "battery" {
                 if let Some(bat) = &data.data {
                     // {"capacity": Number(177228.0), "color": String("#55FF00"), "eta": Number(380.0978088378906), "icon": String("\u{f0079}"), "percentage": Number(100), "state": String("Discharging"), "warn": Number(0.0), "watt": Number(7.76800012588501)}
