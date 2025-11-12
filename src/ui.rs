@@ -58,34 +58,56 @@ pub fn update_span (paragraphs: &mut HashMap<String, Span>, data: PartialMsg) {
     let wcolor = get_color_gradient(data.warning);
     let color = Color::Rgb(wcolor.0, wcolor.1, wcolor.2);
     match res {
+        "loadavg" => {
+            if let Some(info) = &data.data {
+                span = Some(Span::styled(format!("[AVG {} {} {}] ",info["m1"], info["m5"], info["m15"]), Style::default().fg(color)));
+            }
+        },
+        "ram" => {
+            if let Some(info) = &data.data {
+                span = Some(Span::styled(format!("[MEM {}% / SWP {}%] ", info["mem_percent"], info["swap_percent"]), Style::default().fg(color)));
+            }
+        },
+        "disk" => {
+            if let Some(info) = &data.data {
+                span = Some(Span::styled(format!("[DSK {}%] ", info["used_percent"]), Style::default().fg(color)));
+            }
+        },
         "network" => {
             if let Some(info) = &data.data {
                 if info["conn_type"] == "ethernet" {
-                    span = Some(Span::raw(" [ETH]"));
+                    span = Some(Span::raw("[ETH] "));
                 } else {
-                    span = Some(Span::styled(format!(" [WLAN {}%]", info["signal"]), Style::default().fg(color)));
+                    span = Some(Span::styled(format!("[WLAN {}%] ", info["signal"]), Style::default().fg(color)));
                 }
             }
         },
         "temperature" => {
             if let Some(info) = &data.data {
-                span = Some(Span::styled(format!(" [TEMP {:.0}°C]", info["value"]), Style::default().fg(color)));
+                span = Some(Span::styled(format!("[TEMP {:.0}°C] ", info["value"].as_f64().unwrap_or(0.0)), Style::default().fg(color)));
             }
-            /*
-            if let (Some(temp), Some(color)) = extract_json!(&data => {
-                "temperature.value" => as_f64,
-                "temperature.color" => as_str
-            }) {
-                if temp > 0.0 {
-                    spans.push(Span::styled(format!(" [TEMP {:.0}°C]", temp), Style::default().fg(hex_to_color(color).unwrap())));
-                }
-            } */
+        },
+        "volume" => {
+            if let Some(info) = &data.data {
+                span = Some(Span::styled(format!("[VOL {:.0}%] ", info["value"].as_f64().unwrap_or(0.0)), Style::default().fg(color)));
+            }
+        },
+        "battery" => {
+            if let Some(info) = &data.data {
+                let bat_symb = match info["status"].as_str() {
+                    Some("Charging") => { "󱐋" },
+                    Some("Discharging") => { "󰯆" },
+                    _ => { "" }
+                };
+                span = Some(Span::styled(format!("[BAT{} {:.0}%] ", bat_symb, info["percentage"].as_f64().unwrap_or(0.0)), Style::default().fg(color)));
+            }
         },
         "ratatoskr" => {
             if data.warning == 1.0 { span = Some(Span::styled(format!("Ratatoskr disconnected"), Style::default().fg(color))); }
         },
+        "display" => {},
         _ => {
-            span = Some(Span::styled(format!(" [{}]", data.resource), Style::default().fg(color)));
+            span = Some(Span::styled(format!("[{}] ", data.resource), Style::default().fg(color)));
         }
     }
     /*if let Some(info) = &data.data {
@@ -133,7 +155,12 @@ pub fn run_ui(show_icons: bool, t0: Instant) -> io::Result<()> {
     let mut sock = FenrirSocket::new("/tmp/ratatoskr.sock");
     let mut spans: HashMap<String, Span> = HashMap::new();
 
+    let mut draws: i64 = 0;
+    let mut loops: i64 = 0;
+    let mut recv: String = "".into();
+
     loop {
+        loops += 1;
         if let Ok(data) = receiver.try_recv() {
             sysinfo = data.clone();
         }
@@ -145,6 +172,7 @@ pub fn run_ui(show_icons: bool, t0: Instant) -> io::Result<()> {
             /*
                 IDEA: get rid of read_ratatoskr and implement a vec! of PartialMsg/Paragraph wgich will be keep updated from socket readings.
              */
+            recv.push(data.resource.chars().nth(0).unwrap());
             update_span(&mut spans, data);
             /* if data.resource == "battery" {
                 if let Some(bat) = &data.data {
@@ -200,6 +228,7 @@ pub fn run_ui(show_icons: bool, t0: Instant) -> io::Result<()> {
 
         let tsize = terminal.size().unwrap();
         terminal.draw(|f| {
+            draws += 1;
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
                 .margin(1)
@@ -215,6 +244,8 @@ pub fn run_ui(show_icons: bool, t0: Instant) -> io::Result<()> {
             if spans.len() == 0 {
                 f.render_widget(Span::raw("No sys information"), chunks[0]);
             } else {
+                // f.render_widget(Span::raw(format!("{} redraws    {} loops    {} spans    {} recv", draws, loops, spans.len(), recv)), chunks[0]);
+                // f.render_widget(Span::raw(format!("{} spans", spans.len())), chunks[0]);
                 let v: Vec<Span> = spans.values().cloned().collect();
                 f.render_widget(Paragraph::new(Line::from(v)), chunks[0]);
             }
