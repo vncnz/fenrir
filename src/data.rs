@@ -32,7 +32,7 @@ impl FenrirSocket {
 
         match UnixStream::connect(self.path) {
             Ok(mut stream) => {
-                println!("Ratatoskr connected");
+                // println!("Ratatoskr connected");
                 stream.set_nonblocking(true).ok();
                 self.stream = Some(stream);
                 let _ = self.tx.send(PartialMsg {
@@ -54,7 +54,7 @@ impl FenrirSocket {
             match stream.read(&mut buf) {
                 Ok(0) => {
                     // disconnessione
-                    println!("Ratatoskr disconnected");
+                    // println!("Ratatoskr disconnected");
                     let _ = self.tx.send(PartialMsg {
                         resource: "ratatoskr".to_string(),
                         icon: "".into(),
@@ -75,7 +75,7 @@ impl FenrirSocket {
                     // nessun dato nuovo
                 }
                 Err(e) => {
-                    eprintln!("Errore socket: {e}");
+                    // eprintln!("Errore socket: {e}");
                     self.stream = None;
                 }
             }

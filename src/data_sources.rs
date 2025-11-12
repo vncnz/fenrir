@@ -8,7 +8,7 @@ use ratatui::{
     widgets::Paragraph,
 };
 
-fn hex_to_color(hex: &str) -> Option<Color> {
+pub fn hex_to_color(hex: &str) -> Option<Color> {
     let hex = hex.trim_start_matches('#');
     if hex.len() != 6 {
         return None;

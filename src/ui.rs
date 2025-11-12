@@ -1,6 +1,7 @@
 use crate::app::{load_app_entries, AppEntry};
 use crate::data::{FenrirSocket, PartialMsg};
 use crate::data_sources::read_ratatoskr;
+use crate::utils::get_color_gradient;
 use ratatui::{
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout},
@@ -45,13 +46,58 @@ pub fn launch_detached(app: &AppEntry) {
     }
 }
 
-pub fn update_span (paragraphs: HashMap<String, Span>, data: PartialMsg) {
+pub fn update_span (paragraphs: &mut HashMap<String, Span>, data: PartialMsg) {
     // Extract the right paragraph or create a new one
     // Update it with updated data
     // return it
 
     // let par = Span::styled(format!(" [WLAN {}%]", signal.unwrap()), Style::default().fg(hex_to_color(color.unwrap()).unwrap()));
     // paragraphs.insert(data.resource, par);
+    let res = data.resource.as_str();
+    let mut span: Option<Span> = None;
+    let wcolor = get_color_gradient(data.warning);
+    let color = Color::Rgb(wcolor.0, wcolor.1, wcolor.2);
+    match res {
+        "network" => {
+            if let Some(info) = &data.data {
+                if info["conn_type"] == "ethernet" {
+                    span = Some(Span::raw(" [ETH]"));
+                } else {
+                    span = Some(Span::styled(format!(" [WLAN {}%]", info["signal"]), Style::default().fg(color)));
+                }
+            }
+        },
+        "temperature" => {
+            if let Some(info) = &data.data {
+                span = Some(Span::styled(format!(" [TEMP {:.0}°C]", info["value"]), Style::default().fg(color)));
+            }
+            /*
+            if let (Some(temp), Some(color)) = extract_json!(&data => {
+                "temperature.value" => as_f64,
+                "temperature.color" => as_str
+            }) {
+                if temp > 0.0 {
+                    spans.push(Span::styled(format!(" [TEMP {:.0}°C]", temp), Style::default().fg(hex_to_color(color).unwrap())));
+                }
+            } */
+        },
+        "ratatoskr" => {
+            if data.warning == 1.0 { span = Some(Span::styled(format!("Ratatoskr disconnected"), Style::default().fg(color))); }
+        },
+        _ => {
+            span = Some(Span::styled(format!(" [{}]", data.resource), Style::default().fg(color)));
+        }
+    }
+    /*if let Some(info) = &data.data {
+        app.battery_eta = info["eta"].as_f64();
+    }*/
+    
+    if paragraphs.contains_key(&data.resource) {
+        paragraphs.remove(&data.resource);
+    }
+    if let Some(s) = span {
+        paragraphs.insert(data.resource, s);
+    }
 }
 
 pub fn run_ui(show_icons: bool, t0: Instant) -> io::Result<()> {
@@ -99,7 +145,7 @@ pub fn run_ui(show_icons: bool, t0: Instant) -> io::Result<()> {
             /*
                 IDEA: get rid of read_ratatoskr and implement a vec! of PartialMsg/Paragraph wgich will be keep updated from socket readings.
              */
-            update_span(spans.clone(), data);
+            update_span(&mut spans, data);
             /* if data.resource == "battery" {
                 if let Some(bat) = &data.data {
                     // {"capacity": Number(177228.0), "color": String("#55FF00"), "eta": Number(380.0978088378906), "icon": String("\u{f0079}"), "percentage": Number(100), "state": String("Discharging"), "warn": Number(0.0), "watt": Number(7.76800012588501)}
@@ -164,7 +210,14 @@ pub fn run_ui(show_icons: bool, t0: Instant) -> io::Result<()> {
                 ])
                 .split(f.area());
 
-            f.render_widget(&sysinfo, chunks[0]);
+            // f.render_widget(&sysinfo, chunks[0]);
+
+            if spans.len() == 0 {
+                f.render_widget(Span::raw("No sys information"), chunks[0]);
+            } else {
+                let v: Vec<Span> = spans.values().cloned().collect();
+                f.render_widget(Paragraph::new(Line::from(v)), chunks[0]);
+            }
 
             let input = Paragraph::new(format!("Filter: {}", filter));
             f.render_widget(input, chunks[1]);
