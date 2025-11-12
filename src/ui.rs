@@ -1,5 +1,5 @@
 use crate::app::{load_app_entries, AppEntry};
-use crate::data::FenrirSocket;
+use crate::data::{FenrirSocket, PartialMsg};
 use crate::data_sources::read_ratatoskr;
 use ratatui::{
     backend::CrosstermBackend,
@@ -16,6 +16,7 @@ use std::process::{Command, Stdio};
 use std::fs::OpenOptions;
 use std::sync::mpsc::{channel};
 use regex::Regex;
+use std::collections::HashMap;
 
 
 pub fn launch_detached(app: &AppEntry) {
@@ -42,6 +43,15 @@ pub fn launch_detached(app: &AppEntry) {
     if let Err(e) = result {
         eprintln!("Failed to launch '{}': {}", exec, e);
     }
+}
+
+pub fn update_span (paragraphs: HashMap<String, Span>, data: PartialMsg) {
+    // Extract the right paragraph or create a new one
+    // Update it with updated data
+    // return it
+
+    // let par = Span::styled(format!(" [WLAN {}%]", signal.unwrap()), Style::default().fg(hex_to_color(color.unwrap()).unwrap()));
+    // paragraphs.insert(data.resource, par);
 }
 
 pub fn run_ui(show_icons: bool, t0: Instant) -> io::Result<()> {
@@ -75,6 +85,7 @@ pub fn run_ui(show_icons: bool, t0: Instant) -> io::Result<()> {
 
     let mut apps_entries: Vec<AppEntry> = vec![];
     let mut sock = FenrirSocket::new("/tmp/ratatoskr.sock");
+    let mut spans: HashMap<String, Span> = HashMap::new();
 
     loop {
         if let Ok(data) = receiver.try_recv() {
@@ -88,6 +99,7 @@ pub fn run_ui(show_icons: bool, t0: Instant) -> io::Result<()> {
             /*
                 IDEA: get rid of read_ratatoskr and implement a vec! of PartialMsg/Paragraph wgich will be keep updated from socket readings.
              */
+            update_span(spans.clone(), data);
             /* if data.resource == "battery" {
                 if let Some(bat) = &data.data {
                     // {"capacity": Number(177228.0), "color": String("#55FF00"), "eta": Number(380.0978088378906), "icon": String("\u{f0079}"), "percentage": Number(100), "state": String("Discharging"), "warn": Number(0.0), "watt": Number(7.76800012588501)}
