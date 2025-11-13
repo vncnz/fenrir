@@ -1,4 +1,4 @@
-use serde_json::Value;
+/*use serde_json::Value;
 use std::fs;
 use std::sync::mpsc::{Sender};
 
@@ -6,8 +6,8 @@ use ratatui::{
     style::{Color, Style},
     text::{Line, Span},
     widgets::Paragraph,
-};
-
+};*/
+/*
 pub fn hex_to_color(hex: &str) -> Option<Color> {
     let hex = hex.trim_start_matches('#');
     if hex.len() != 6 {
@@ -20,7 +20,7 @@ pub fn hex_to_color(hex: &str) -> Option<Color> {
 
     Some(Color::Rgb(r, g, b))
 }
-
+*/
 /* macro_rules! extract_json {
     ($obj:expr => {
         $( $path:literal => $var:ident : $method:ident ),+ $(,)?
@@ -42,7 +42,7 @@ pub fn hex_to_color(hex: &str) -> Option<Color> {
         }
     }};
 } */
-macro_rules! extract_json {
+/* macro_rules! extract_json {
     ($data:expr => { $($path:literal => $method:ident),+ $(,)? }) => {
         (
             $(
@@ -55,10 +55,10 @@ macro_rules! extract_json {
             ),+
         )
     };
-}
+} */
 
 
-
+/*
 use std::time::{SystemTime, UNIX_EPOCH};
 pub fn read_ratatoskr (sender: Sender<Paragraph>) {
     if let Ok(contents) = fs::read_to_string("/tmp/ratatoskr.json") {
@@ -160,4 +160,4 @@ pub fn read_ratatoskr (sender: Sender<Paragraph>) {
         let paragraph = Paragraph::new(Span::styled("No sysinfo file, maybe you missed to start Ratatoskr?", Style::default().fg(Color::LightMagenta)));
         sender.send(paragraph).expect("Send error");
     }
-}
+} */

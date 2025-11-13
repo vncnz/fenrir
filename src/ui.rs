@@ -1,7 +1,7 @@
 use crate::app::{load_app_entries, AppEntry};
 use crate::data::{FenrirSocket, PartialMsg};
-use crate::data_sources::read_ratatoskr;
-use crate::utils::get_color_gradient;
+// use crate::data_sources::read_ratatoskr;
+use crate::utils::{get_color_gradient};
 use ratatui::{
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout},
@@ -15,9 +15,10 @@ use crossterm::terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScree
 use std::{io, time::Instant};
 use std::process::{Command, Stdio};
 use std::fs::OpenOptions;
-use std::sync::mpsc::{channel};
 use regex::Regex;
 use std::collections::HashMap;
+
+// use chrono::Local;
 
 
 pub fn launch_detached(app: &AppEntry) {
@@ -139,9 +140,9 @@ pub fn run_ui(show_icons: bool, t0: Instant) -> io::Result<()> {
     let mut selected = 0;
 
     let mut last_icon_path: Option<std::path::PathBuf> = None;
-    let mut sysinfo = Paragraph::default();
+    // let mut sysinfo = Paragraph::default();
 
-    let (sender, receiver) = channel::<Paragraph>();
+    /* let (sender, receiver) = channel::<Paragraph>();
     std::thread::spawn(move || {
         // let mut counter = 0;
         loop {
@@ -149,77 +150,28 @@ pub fn run_ui(show_icons: bool, t0: Instant) -> io::Result<()> {
             // counter += 1;
             std::thread::sleep(std::time::Duration::from_secs(1));
         }
-    });
+    }); */
 
     let mut apps_entries: Vec<AppEntry> = vec![];
     let mut sock = FenrirSocket::new("/tmp/ratatoskr.sock");
     let mut spans: HashMap<String, Span> = HashMap::new();
 
-    let mut draws: i64 = 0;
-    let mut loops: i64 = 0;
-    let mut recv: String = "".into();
+    // let mut draws: i64 = 0;
+    // let mut loops: i64 = 0;
+    // let mut recv: String = "".into();
 
     loop {
-        loops += 1;
-        if let Ok(data) = receiver.try_recv() {
+        // loops += 1;
+        /* if let Ok(data) = receiver.try_recv() {
             sysinfo = data.clone();
-        }
+        } */
 
         sock.poll_messages();
 
         if let Ok(data) = sock.rx.try_recv() {
-            // println!("Received: {:?}", data);
-            /*
-                IDEA: get rid of read_ratatoskr and implement a vec! of PartialMsg/Paragraph wgich will be keep updated from socket readings.
-             */
-            recv.push(data.resource.chars().nth(0).unwrap());
+            // log_to_file(format!("Received: {:?}", data.resource));
+            // recv.push(data.resource.chars().nth(0).unwrap());
             update_span(&mut spans, data);
-            /* if data.resource == "battery" {
-                if let Some(bat) = &data.data {
-                    // {"capacity": Number(177228.0), "color": String("#55FF00"), "eta": Number(380.0978088378906), "icon": String("\u{f0079}"), "percentage": Number(100), "state": String("Discharging"), "warn": Number(0.0), "watt": Number(7.76800012588501)}
-                    // let old_eta = app.battery_eta;
-                    // let old_state = app.battery_recharging;
-                    app.battery_eta = bat["eta"].as_f64();
-                    app.battery_recharging = match bat["state"].as_str().unwrap() {
-                        "Discharging" => Some(false),
-                        "Charging" => Some(true),
-                        _ => None
-                    };
-                    app.request_redraw();
-                    // eprintln!("{:?}", bat);
-                    // eprintln!("battery {:?} {:?}", app.battery_recharging, app.battery_eta);
-                }
-            }
-
-            if data.resource == "ratatoskr" {
-                let new_ratatoskr_status = data.warning < 0.5;
-                if app.ratatoskr_connected != new_ratatoskr_status {
-                    app.ratatoskr_connected = new_ratatoskr_status;
-                    app.request_redraw();
-                }
-            } else if data.warning < 0.3 {
-                if app.remove_icon(&data.resource) {
-                    app.request_redraw();
-                }
-            }
-            else {
-                let mut icon = "";
-                if data.resource == "loadavg" { icon = "󰬢"; }
-                else if data.resource == "ram" { icon = "󰘚"; }
-                else if data.resource == "temperature" { icon = &data.icon; }
-                else if data.resource == "network" { icon = &data.icon; }
-                else if data.resource == "disk" { icon = "󰋊"; }
-                // weather
-                // volume
-                // disk
-                // display
-
-                if icon != "" {
-                    app.remove_icon(&data.resource);
-                    app.add_icon(&data.resource, icon, get_color_gradient(data.warning), data.warning);
-                    app.request_redraw();
-                }
-            } */
         }
 
         let filtered: Vec<_> = apps_entries.iter()
@@ -228,7 +180,7 @@ pub fn run_ui(show_icons: bool, t0: Instant) -> io::Result<()> {
 
         let tsize = terminal.size().unwrap();
         terminal.draw(|f| {
-            draws += 1;
+            // draws += 1;
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
                 .margin(1)
