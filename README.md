@@ -16,10 +16,3 @@ Information about system resources is collected from another process: Ratatoskr.
 Please note that this is a personal project, for personal use, developed in my (not so much) free time. You'll not find clean code or a flexible, modular system here. You'll find lots of experiments, abandoned ideas, dead code, temporary hacks and workarounds. Oh, and last but not least, I'm just learning both Rust and GTK. You've been warned.
 
 ![image](screenshots/screenshot.png)
-
-# TODO
-- Update to manage sock communication (feeded from sock-ratatoskr)
-
-### known bugs
-<!-- [ ] Nerd icons are too small: using ttf-roboto-mono-nerd?-->
-- Sometimes the app icon don't show up

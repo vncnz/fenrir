@@ -242,6 +242,8 @@ pub fn run_ui(show_icons: bool, t0: Instant) -> io::Result<()> {
                                 let _ = viuer::print(&img, &config); // viuer::Config::default()
                                 last_icon_path = app.icon_path.clone();
                             }
+                        } else {
+                            last_icon_path = None;
                         }
                     }
                 }
