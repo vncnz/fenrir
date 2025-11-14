@@ -1,4 +1,4 @@
-/*use std::fs::OpenOptions;
+use std::fs::OpenOptions;
 use std::io::Write;
 
 pub fn log_to_file(msg: String) {
@@ -8,7 +8,7 @@ pub fn log_to_file(msg: String) {
         .open("/tmp/fenrir.log")
         .expect("impossibile aprire log file");
     writeln!(file, "[{}] {}", chrono::Local::now().format("%H:%M:%S%.3f"), msg).unwrap();
-}*/
+}
 
 const DEFAULT_WHITE: bool = false;
 pub fn get_color_gradient(value: f64) -> (u8, u8, u8) {

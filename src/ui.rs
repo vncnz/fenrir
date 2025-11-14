@@ -1,7 +1,7 @@
 use crate::app::{load_app_entries, AppEntry};
 use crate::data::{FenrirSocket, PartialMsg};
 // use crate::data_sources::read_ratatoskr;
-use crate::utils::{get_color_gradient};
+use crate::utils::{get_color_gradient, log_to_file};
 use ratatui::{
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout},
@@ -79,7 +79,7 @@ pub fn update_span (paragraphs: &mut HashMap<String, Span>, data: PartialMsg) {
                 if info["conn_type"] == "ethernet" {
                     span = Some(Span::raw("[ETH] "));
                 } else {
-                    span = Some(Span::styled(format!("[WLAN {}%] ", info["signal"]), Style::default().fg(color)));
+                    span = Some(Span::styled(format!("[WLAN {}%] [IP {}] [NET {}] ", info["signal"], info["ip"].as_str().unwrap(), info["ssid"].as_str().unwrap()), Style::default().fg(color)));
                 }
             }
         },
@@ -95,7 +95,7 @@ pub fn update_span (paragraphs: &mut HashMap<String, Span>, data: PartialMsg) {
         },
         "battery" => {
             if let Some(info) = &data.data {
-                let bat_symb = match info["status"].as_str() {
+                let bat_symb = match info["state"].as_str() {
                     Some("Charging") => { "󱐋" },
                     Some("Discharging") => { "󰯆" },
                     _ => { "" }
@@ -107,6 +107,12 @@ pub fn update_span (paragraphs: &mut HashMap<String, Span>, data: PartialMsg) {
             if data.warning == 1.0 { span = Some(Span::styled(format!("Ratatoskr disconnected"), Style::default().fg(color))); }
         },
         "display" => {},
+        "weather" => {
+            // {"icon": "", "text": "Fog", "temp": 8, "temp_real": 9, "temp_unit": "°C", "day": "0", "icon_name": "fog.svg", "sunrise": "07:15", "sunset": "16:48", "sunrise_mins": 435, "sunset_mins": 1008, "daylight": 34385.75, "locality": "Desenzano Del Garda", "humidity": 99}
+            if let Some(info) = &data.data {
+                span = Some(Span::styled(format!("[{} {}] ", info["icon"], info["text"]), Style::default().fg(color)));
+            }
+        },
         _ => {
             span = Some(Span::styled(format!("[{}] ", data.resource), Style::default().fg(color)));
         }
@@ -169,7 +175,7 @@ pub fn run_ui(show_icons: bool, t0: Instant) -> io::Result<()> {
         sock.poll_messages();
 
         if let Ok(data) = sock.rx.try_recv() {
-            // log_to_file(format!("Received: {:?}", data.resource));
+            // log_to_file(format!("Received: {} {:?}", data.resource, data));
             // recv.push(data.resource.chars().nth(0).unwrap());
             update_span(&mut spans, data);
         }
@@ -185,25 +191,37 @@ pub fn run_ui(show_icons: bool, t0: Instant) -> io::Result<()> {
                 .direction(Direction::Vertical)
                 .margin(1)
                 .constraints([
-                    Constraint::Length(2),
+                    Constraint::Length(1),
+                    Constraint::Length(1),
+                    Constraint::Length(1),
                     Constraint::Length(1),
                     Constraint::Min(0),
                 ])
                 .split(f.area());
 
-            // f.render_widget(&sysinfo, chunks[0]);
 
             if spans.len() == 0 {
                 f.render_widget(Span::raw("No sys information"), chunks[0]);
             } else {
                 // f.render_widget(Span::raw(format!("{} redraws    {} loops    {} spans    {} recv", draws, loops, spans.len(), recv)), chunks[0]);
                 // f.render_widget(Span::raw(format!("{} spans", spans.len())), chunks[0]);
-                let v: Vec<Span> = spans.values().cloned().collect();
-                f.render_widget(Paragraph::new(Line::from(v)), chunks[0]);
+                if spans.contains_key("ratatoskr") {
+                    f.render_widget(Span::raw("Ratatoskr disconnected"), chunks[0]);
+                } else {
+                    let keys = ["loadavg", "ram", "disk", "temperature", "volume", "battery", "weather", "display"];
+                    // let v: Vec<Span> = spans.values().cloned().collect();
+                    let v: Vec<Span> = keys
+                        .iter()
+                        .filter_map(|k| spans.get(*k).cloned())
+                        .collect();
+                    f.render_widget(Paragraph::new(Line::from(v)), chunks[0]);
+                }
+            } if spans.contains_key("network") {
+                f.render_widget(Paragraph::new(spans.get("network").cloned().unwrap_or_default()), chunks[1]);
             }
 
             let input = Paragraph::new(format!("Filter: {}", filter));
-            f.render_widget(input, chunks[1]);
+            f.render_widget(input, chunks[3]);
 
             let items: Vec<_> = filtered.iter()
                 .map(|a| ListItem::new(
@@ -223,7 +241,7 @@ pub fn run_ui(show_icons: bool, t0: Instant) -> io::Result<()> {
 
             let mut state = ratatui::widgets::ListState::default();
             state.select(Some(selected));
-            f.render_stateful_widget(list, chunks[2], &mut state);
+            f.render_stateful_widget(list, chunks[4], &mut state);
 
             // Icon rendering (Kitty required)
             let mut config = viuer::Config::default();
