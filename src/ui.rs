@@ -2,6 +2,7 @@ use crate::app::{load_app_entries, AppEntry};
 use crate::data::{FenrirSocket, PartialMsg};
 // use crate::data_sources::read_ratatoskr;
 use crate::utils::{get_color_gradient, log_to_file};
+
 use ratatui::{
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout},
@@ -100,7 +101,10 @@ pub fn update_span (paragraphs: &mut HashMap<String, Span>, data: PartialMsg) {
                     Some("Discharging") => { "󰯆" },
                     _ => { "" }
                 };
-                span = Some(Span::styled(format!("[BAT{} {:.0}%] ", bat_symb, info["percentage"].as_f64().unwrap_or(0.0)), Style::default().fg(color)));
+                let eta = info["eta"].as_f64().unwrap_or_default().round() as i8;
+                let h = eta / 60;
+                let m = eta % 60;
+                span = Some(Span::styled(format!("[BAT {:.0}%] [{} {}h{}m]", info["percentage"].as_f64().unwrap_or(0.0), bat_symb, h, m), Style::default().fg(color)));
             }
         },
         "ratatoskr" => {
@@ -208,7 +212,7 @@ pub fn run_ui(show_icons: bool, t0: Instant) -> io::Result<()> {
                 if spans.contains_key("ratatoskr") {
                     f.render_widget(Span::raw("Ratatoskr disconnected"), chunks[0]);
                 } else {
-                    let keys = ["loadavg", "ram", "disk", "temperature", "volume", "battery", "weather", "display"];
+                    let keys = ["loadavg", "ram", "disk", "temperature", "volume", "weather", "display"];
                     // let v: Vec<Span> = spans.values().cloned().collect();
                     let v: Vec<Span> = keys
                         .iter()
@@ -216,8 +220,19 @@ pub fn run_ui(show_icons: bool, t0: Instant) -> io::Result<()> {
                         .collect();
                     f.render_widget(Paragraph::new(Line::from(v)), chunks[0]);
                 }
-            } if spans.contains_key("network") {
-                f.render_widget(Paragraph::new(spans.get("network").cloned().unwrap_or_default()), chunks[1]);
+            }
+            let mut second_row: Vec<Span> = vec![];
+            if spans.contains_key("network") {
+                // f.render_widget(Paragraph::new(spans.get("network").cloned().unwrap_or_default()), chunks[1]);
+                second_row.push(spans.get("network").cloned().unwrap_or_default());
+            }
+            if spans.contains_key("battery") {
+                second_row.push(spans.get("battery").cloned().unwrap_or_default());
+            }
+            if second_row.len() > 0 {
+                f.render_widget(Paragraph::new(Line::from(second_row)), chunks[1]);
+            } else {
+                f.render_widget(Paragraph::new(""), chunks[1]);
             }
 
             let input = Paragraph::new(format!("Filter: {}", filter));
