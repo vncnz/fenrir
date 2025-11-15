@@ -101,7 +101,7 @@ pub fn update_span (paragraphs: &mut HashMap<String, Span>, data: PartialMsg) {
                     Some("Discharging") => { "󰯆" },
                     _ => { "" }
                 };
-                let eta = info["eta"].as_f64().unwrap_or_default().round() as i8;
+                let eta = info["eta"].as_f64().unwrap_or_default().round() as i32;
                 let h = eta / 60;
                 let m = eta % 60;
                 span = Some(Span::styled(format!("[BAT {:.0}%] [{} {}h{}m]", info["percentage"].as_f64().unwrap_or(0.0), bat_symb, h, m), Style::default().fg(color)));
