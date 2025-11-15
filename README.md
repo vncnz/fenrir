@@ -19,6 +19,7 @@ Please note that this is a personal project, for personal use, developed in my (
 - Insert weather information
 - ~~Full network information, like IP and networkname, on a dedicated row~~ Done!
 - ~~Fix resources information order~~ Done!
+- ~~Add battery ETA if available~~ Done!
 - Create an area for selected executable properties and icon?
 
 ![image](screenshots/screenshot.png)
