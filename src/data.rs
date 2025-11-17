@@ -1,7 +1,6 @@
 use std::sync::mpsc::{Sender,Receiver,channel};
 use std::os::unix::net::UnixStream;
 use std::io::Read;
-// use serde::Deserialize;
 use serde_derive::Deserialize;
 
 #[derive(Default, Deserialize, Debug)]
@@ -12,7 +11,7 @@ pub struct PartialMsg {
     pub data: Option<serde_json::Value>,
 }
 
-pub struct FenrirSocket {
+pub struct RatatoskrSocket {
     stream: Option<UnixStream>,
     path: &'static str,
     tx: Sender<PartialMsg>,
@@ -20,7 +19,7 @@ pub struct FenrirSocket {
     recv_buf: String,
 }
 
-impl FenrirSocket {
+impl RatatoskrSocket {
     pub fn new(path: &'static str) -> Self {
         let (tx, rx) = channel();
         Self { stream: None, path, tx, rx, recv_buf: "".to_string() }
@@ -54,7 +53,7 @@ impl FenrirSocket {
             let mut buf = [0u8; 4096];
             match stream.read(&mut buf) {
                 Ok(0) => {
-                    println!("Ratatoskr disconnected");
+                    // println!("Ratatoskr disconnected");
                     let _ = self.tx.send(PartialMsg {
                         resource: "ratatoskr".to_string(),
                         // icon: "".into(),
@@ -75,7 +74,7 @@ impl FenrirSocket {
                                 if let Ok(data) = serde_json::from_str::<PartialMsg>(msg) {
                                     let _ = self.tx.send(data);
                                 } else {
-                                    eprintln!("Invalid JSON fragment: {msg}");
+                                    // eprintln!("Invalid JSON fragment: {msg}");
                                 }
                             }
                             // rimuove la parte processata
@@ -86,8 +85,8 @@ impl FenrirSocket {
                 Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                     // nessun dato nuovo
                 }
-                Err(e) => {
-                    eprintln!("Errore socket: {e}");
+                Err(_e) => {
+                    // eprintln!("Errore socket: {e}");
                     self.stream = None;
                 }
             }
@@ -95,4 +94,22 @@ impl FenrirSocket {
             self.try_connect();
         }
     }
+
 }
+
+/*
+Usage example:
+
+let mut sock = RatatoskrSocket::new("/tmp/ratatoskr.sock");
+
+... and in the main loop ...
+
+sock.poll_messages();
+if let Ok(data) = sock.rx.try_recv() {
+    if data.resource == "DESIRED" {
+        if let Some(info) = &data.data {
+            let some_number = info["key"].as_f64();
+        }
+    }
+}
+ */

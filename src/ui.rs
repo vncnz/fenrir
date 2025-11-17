@@ -1,5 +1,5 @@
 use crate::app::{load_app_entries, AppEntry};
-use crate::data::{FenrirSocket, PartialMsg};
+use crate::data::{RatatoskrSocket, PartialMsg};
 // use crate::data_sources::read_ratatoskr;
 use crate::utils::{get_color_gradient, log_to_file};
 
@@ -163,7 +163,7 @@ pub fn run_ui(show_icons: bool, t0: Instant) -> io::Result<()> {
     }); */
 
     let mut apps_entries: Vec<AppEntry> = vec![];
-    let mut sock = FenrirSocket::new("/tmp/ratatoskr.sock");
+    let mut sock = RatatoskrSocket::new("/tmp/ratatoskr.sock");
     let mut spans: HashMap<String, Span> = HashMap::new();
 
     // let mut draws: i64 = 0;
