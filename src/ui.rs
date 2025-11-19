@@ -48,6 +48,14 @@ pub fn launch_detached(app: &AppEntry) {
     }
 }
 
+macro_rules! jstr {
+    ($value:expr, $key:expr, $default:expr) => {
+        $value.get($key)
+            .and_then(|v| v.as_str())
+            .unwrap_or($default)
+    };
+}
+
 pub fn update_span (paragraphs: &mut HashMap<String, Span>, data: PartialMsg) {
     // Extract the right paragraph or create a new one
     // Update it with updated data
@@ -86,12 +94,22 @@ pub fn update_span (paragraphs: &mut HashMap<String, Span>, data: PartialMsg) {
         },
         "temperature" => {
             if let Some(info) = &data.data {
-                span = Some(Span::styled(format!("[TEMP {:.0}°C] ", info["value"].as_f64().unwrap_or(0.0)), Style::default().fg(color)));
+                let v = info["value"].as_f64().unwrap_or(0.0);
+                if v > 0.0 {
+                    span = Some(Span::styled(format!("[TEMP {:.0}°C] ", v), Style::default().fg(color)));
+                } else {
+                    span = Some(Span::styled("[NO TEMP] ", Style::default().fg(Color::Rgb(100, 100, 100))));
+                }
             }
         },
         "volume" => {
             if let Some(info) = &data.data {
-                span = Some(Span::styled(format!("[VOL {:.0}%] ", info["value"].as_f64().unwrap_or(0.0)), Style::default().fg(color)));
+                let v = info["value"].as_f64().unwrap_or(0.0);
+                if v > 0.0 {
+                    span = Some(Span::styled(format!("[VOL {:.0}%] ", v), Style::default().fg(color)));
+                } else {
+                    span = Some(Span::styled(format!("[MUTED] ", ), Style::default().fg(Color::Rgb(100, 100, 100))));
+                }
             }
         },
         "battery" => {
@@ -99,12 +117,13 @@ pub fn update_span (paragraphs: &mut HashMap<String, Span>, data: PartialMsg) {
                 let bat_symb = match info["state"].as_str() {
                     Some("Charging") => { "󱐋" },
                     Some("Discharging") => { "󰯆" },
-                    _ => { "" }
+                    _ => { "󰜥" }
                 };
                 let eta = info["eta"].as_f64().unwrap_or_default().round() as i32;
                 let h = eta / 60;
                 let m = eta % 60;
-                span = Some(Span::styled(format!("[BAT {:.0}%] [{} {}h{}m]", info["percentage"].as_f64().unwrap_or(0.0), bat_symb, h, m), Style::default().fg(color)));
+                let second = if eta > 0 { format!("{} {}h{}m", bat_symb, h, m) } else { "󰚥 stable".into() };
+                span = Some(Span::styled(format!("[BAT {:.0}%] [{}]", info["percentage"].as_f64().unwrap_or(0.0), second), Style::default().fg(color)));
             }
         },
         "ratatoskr" => {
@@ -114,7 +133,7 @@ pub fn update_span (paragraphs: &mut HashMap<String, Span>, data: PartialMsg) {
         "weather" => {
             // {"icon": "", "text": "Fog", "temp": 8, "temp_real": 9, "temp_unit": "°C", "day": "0", "icon_name": "fog.svg", "sunrise": "07:15", "sunset": "16:48", "sunrise_mins": 435, "sunset_mins": 1008, "daylight": 34385.75, "locality": "Desenzano Del Garda", "humidity": 99}
             if let Some(info) = &data.data {
-                span = Some(Span::styled(format!("[{} {}] ", info["icon"], info["text"]), Style::default().fg(color)));
+                span = Some(Span::styled(format!("[{} {} {:.0}{}] ", jstr!(info, "icon", ""), jstr!(info, "text", ""), info["temp"], jstr!(info, "temp_unit", "")), Style::default().fg(color)));
             }
         },
         _ => {
