@@ -1,5 +1,5 @@
 use crate::app::{load_app_entries, AppEntry};
-use crate::data::{RatatoskrSocket, PartialMsg};
+use crate::data::{BluetoothStats, PartialMsg, RatatoskrSocket, UPowerDeviceKind};
 // use crate::data_sources::read_ratatoskr;
 use crate::utils::{get_color_gradient, log_to_file};
 
@@ -13,6 +13,7 @@ use ratatui::{
 };
 use crossterm::event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode};
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen};
+use serde::Deserialize;
 use std::{io, time::Instant};
 use std::process::{Command, Stdio};
 use std::fs::OpenOptions;
@@ -136,6 +137,32 @@ pub fn update_span (paragraphs: &mut HashMap<String, Span>, data: PartialMsg) {
                 span = Some(Span::styled(format!("[{} {} {:.0}{}] ", jstr!(info, "icon", ""), jstr!(info, "text", ""), info["temp"], jstr!(info, "temp_unit", "")), Style::default().fg(color)));
             }
         },
+        "bt-batteries" => {
+            if let Some(blue) = &data.data {
+                if let Ok(b) = BluetoothStats::deserialize(blue.clone()) {
+                    let mut sp = "".to_string();
+                    log_to_file(format!("{:?}", b));
+                    for dev in b.devices.clone().iter() { // .filter(|dv| dv.is_bluetooth) {
+                        let icon = match dev.kind {
+                            UPowerDeviceKind::Mouse => "󰦋",
+                            UPowerDeviceKind::Phone => if dev.is_bluetooth { "󱆏" } else { "󰏲" },
+                            UPowerDeviceKind::Tablet => "",
+                            UPowerDeviceKind::RemoteControl => "󰻅",
+                            UPowerDeviceKind::Speakers => "󰦢",
+                            UPowerDeviceKind::Headphones => "󰥰",
+                            UPowerDeviceKind::GamingInput => "󱤙",
+                            UPowerDeviceKind::Keyboard => "󰌌",
+                            _ => "󰂱"
+                        };
+                        let prev = format!("{}", sp);
+                        sp = format!("{} [{} {:.0}%]", prev, icon, dev.percentage);
+                        log_to_file(format!("{}", sp));
+                    }
+                    span = Some(Span::styled(sp, Style::default().fg(color)));
+
+                }
+            }
+        },
         _ => {
             span = Some(Span::styled(format!("[{}] ", data.resource), Style::default().fg(color)));
         }
@@ -247,6 +274,9 @@ pub fn run_ui(show_icons: bool, t0: Instant) -> io::Result<()> {
             }
             if spans.contains_key("battery") {
                 second_row.push(spans.get("battery").cloned().unwrap_or_default());
+            }
+            if spans.contains_key("bt-batteries") {
+                second_row.push(spans.get("bt-batteries").cloned().unwrap_or_default());
             }
             if second_row.len() > 0 {
                 f.render_widget(Paragraph::new(Line::from(second_row)), chunks[1]);

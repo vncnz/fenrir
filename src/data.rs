@@ -11,6 +11,59 @@ pub struct PartialMsg {
     pub data: Option<serde_json::Value>,
 }
 
+#[derive(Default, Deserialize, Debug)]
+pub struct BluetoothStats {
+    pub devices: Vec<BatteryDevice>,
+    #[allow(unused)]
+    pub icon: String,
+    #[allow(unused)]
+    pub warn: f64
+}
+
+#[derive(Debug, Clone, Deserialize, PartialEq)]
+pub struct BatteryDevice {
+    pub name: String,
+    pub kind: UPowerDeviceKind,
+    pub percentage: f64,
+    pub warn: f64,
+    pub address: String,
+    pub is_bluetooth: bool,
+    // pub connected: bool
+}
+
+#[derive(Debug, Clone, Deserialize, PartialEq)]
+pub enum UPowerDeviceKind {
+    Unknown,
+    LinePower,
+    Battery,
+    Ups,
+    Monitor,
+    Mouse,
+    Keyboard,
+    Pda,
+    Phone,
+    MediaPlayer,
+    Tablet,
+    Computer,
+    GamingInput,
+    Pen,
+    Touchpad,
+    Modem,
+    Network,
+    Headset,
+    Speakers,
+    Headphones,
+    Video,
+    OtherAudio,
+    RemoteControl,
+    Printer,
+    Scanner,
+    Camera,
+    Wearable,
+    Toy,
+    BluetoothGeneric,
+}
+
 pub struct RatatoskrSocket {
     stream: Option<UnixStream>,
     path: &'static str,
