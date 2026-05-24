@@ -141,7 +141,7 @@ pub fn update_span (paragraphs: &mut HashMap<String, Span>, data: PartialMsg) {
             if let Some(blue) = &data.data {
                 if let Ok(b) = BluetoothStats::deserialize(blue.clone()) {
                     let mut sp = "".to_string();
-                    log_to_file(format!("{:?}", b));
+                    // log_to_file(format!("{:?}", b));
                     for dev in b.devices.clone().iter() { // .filter(|dv| dv.is_bluetooth) {
                         let icon = match dev.kind {
                             UPowerDeviceKind::Mouse => "󰦋",
@@ -156,7 +156,7 @@ pub fn update_span (paragraphs: &mut HashMap<String, Span>, data: PartialMsg) {
                         };
                         let prev = format!("{}", sp);
                         sp = format!("{} [{} {:.0}%]", prev, icon, dev.percentage);
-                        log_to_file(format!("{}", sp));
+                        // log_to_file(format!("{}", sp));
                     }
                     span = Some(Span::styled(sp, Style::default().fg(color)));
 
