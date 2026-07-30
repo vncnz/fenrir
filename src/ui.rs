@@ -1,7 +1,7 @@
 use crate::app::{AppEntry, LaunchHistory, load_app_entries, load_launch_history, prune_launch_history, record_app_launch, save_launch_history, sort_app_entries_by_launch_history};
 use crate::data::{BluetoothStats, PartialMsg, RatatoskrSocket, UPowerDeviceKind};
 // use crate::data_sources::read_ratatoskr;
-use crate::utils::get_color_gradient;
+use crate::utils::{get_color_gradient, log_to_file};
 
 use chrono::Duration;
 use ratatui::{
@@ -37,7 +37,7 @@ pub fn launch_detached(app: &AppEntry) {
         .open("/tmp/fenrir.log")
         .unwrap_or_else(|_| std::fs::File::create("/dev/null").unwrap());
 
-    let result = Command::new("setsid")
+    let result = Command::new("nohup")
         .arg("sh")
         .arg("-c")
         .arg(format!("exec {}", exec))
@@ -213,7 +213,9 @@ pub fn run_ui(show_icons: bool, t0: Instant) -> io::Result<()> {
     let mut apps_entries: Vec<AppEntry> = vec![];
     let mut sock = RatatoskrSocket::new("/tmp/ratatoskr.sock");
     let mut spans: HashMap<String, Span> = HashMap::new();
-    let history_path = PathBuf::from("/tmp/fenrir-launch-history.json");
+    let uri = if let Ok(path) = std::env::var("XDG_STATE_HOME") { path } else { shellexpand::tilde("~/.local/state/fenrir/history.json").to_string() };
+    log_to_file(format!("History path {uri}"));
+    let history_path = PathBuf::from(uri); // "/tmp/fenrir-launch-history.json");
     let mut launch_history: LaunchHistory = load_launch_history(&history_path).unwrap_or_default();
 
     // let mut draws: i64 = 0;

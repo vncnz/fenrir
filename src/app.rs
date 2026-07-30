@@ -79,6 +79,9 @@ pub fn sort_app_entries_by_launch_history(
 }
 
 pub fn save_launch_history(history: &LaunchHistory, path: &PathBuf) -> Result<(), Box<dyn Error>> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
     let data = serde_json::to_string_pretty(history)?;
     fs::write(path, data)?;
     Ok(())
