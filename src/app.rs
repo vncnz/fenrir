@@ -82,8 +82,10 @@ pub fn save_launch_history(history: &LaunchHistory, path: &PathBuf) -> Result<()
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
     }
+    let temp = path.with_extension("json.tmp");
     let data = serde_json::to_string_pretty(history)?;
-    fs::write(path, data)?;
+    fs::write(&temp, data)?;
+    fs::rename(temp, path)?;
     Ok(())
 }
 
