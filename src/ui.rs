@@ -37,7 +37,7 @@ pub fn launch_detached(app: &AppEntry) {
         .open("/tmp/fenrir.log")
         .unwrap_or_else(|_| std::fs::File::create("/dev/null").unwrap());
 
-    let result = Command::new("nohup")
+    let result = Command::new("setsid")
         .arg("sh")
         .arg("-c")
         .arg(format!("exec {}", exec))
