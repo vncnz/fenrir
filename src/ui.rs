@@ -25,29 +25,44 @@ use std::collections::HashMap;
 // use chrono::Local;
 
 
+use std::os::unix::process::CommandExt;
+
 pub fn launch_detached(app: &AppEntry) {
-    // let exec = &app.exec;
     let re = Regex::new(r"%[UufFdDnNickvm]").unwrap();
     let exec = re.replace_all(&app.exec, "").into_owned();
 
-    // Log file in caso di errori
+    // Open log file safely
     let log_file = OpenOptions::new()
         .create(true)
         .append(true)
         .open("/tmp/fenrir.log")
-        .unwrap_or_else(|_| std::fs::File::create("/dev/null").unwrap());
+        .unwrap_or_else(|_| OpenOptions::new().write(true).open("/dev/null").unwrap());
 
-    let result = Command::new("setsid")
-        .arg("sh")
-        .arg("-c")
-        .arg(format!("exec {}", exec))
-        .stdin(Stdio::null())
-        .stdout(Stdio::from(log_file.try_clone().unwrap()))
-        .stderr(Stdio::from(log_file))
-        .spawn();
+    let stderr_file = log_file.try_clone().unwrap();
 
-    if let Err(e) = result {
-        eprintln!("Failed to launch '{}': {}", exec, e);
+    let mut cmd = Command::new("sh");
+    cmd.arg("-c").arg(format!("exec {}", exec))
+       .stdin(Stdio::null())
+       .stdout(Stdio::from(log_file))
+       .stderr(Stdio::from(stderr_file));
+
+    // SAFETY: libc::setsid() is an async-signal-safe POSIX system call
+    unsafe {
+        cmd.pre_exec(|| {
+            libc::setsid();
+            Ok(())
+        });
+    }
+
+    match cmd.spawn() {
+        Ok(_child) => {
+            // Do NOT call wait() on _child. 
+            // Letting _child go out of scope without waiting drops the Rust handle
+            // while leaving the spawned process detached in its own session.
+        }
+        Err(e) => {
+            eprintln!("Failed to launch '{}': {}", exec, e);
+        }
     }
 }
 
