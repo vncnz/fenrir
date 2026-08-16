@@ -21,5 +21,6 @@ Please note that this is a personal project, for personal use, developed in my (
 - ~~Fix resources information order~~ Done!
 - ~~Add battery ETA if available~~ Done!
 - Create an area for selected executable properties and icon?
+- Fuzzy search
 
 ![image](screenshots/screenshot.png)
