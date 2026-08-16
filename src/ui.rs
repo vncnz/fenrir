@@ -57,6 +57,147 @@ macro_rules! jstr {
     };
 }
 
+fn normalize_match_text(value: &str) -> String {
+    value.to_lowercase()
+        .chars()
+        .filter(|ch| ch.is_ascii_alphanumeric() || ch.is_ascii_whitespace())
+        .collect()
+}
+
+fn is_keyboard_neighbor(a: char, b: char) -> bool {
+    let rows = ["qwertyuiop", "asdfghjkl", "zxcvbnm"];
+    let mut a_pos = None;
+    let mut b_pos = None;
+
+    for (row_idx, row) in rows.iter().enumerate() {
+        if a_pos.is_none() {
+            a_pos = row.chars().position(|ch| ch == a).map(|col| (row_idx, col));
+        }
+        if b_pos.is_none() {
+            b_pos = row.chars().position(|ch| ch == b).map(|col| (row_idx, col));
+        }
+        if a_pos.is_some() && b_pos.is_some() {
+            break;
+        }
+    }
+
+    match (a_pos, b_pos) {
+        (Some((ra, ca)), Some((rb, cb))) => {
+            let row_diff = (ra as i32 - rb as i32).abs();
+            let col_diff = (ca as i32 - cb as i32).abs();
+            row_diff <= 1 && col_diff <= 1
+        }
+        _ => false,
+    }
+}
+
+fn substitution_cost(a: char, b: char) -> f32 {
+    if a == b {
+        0.0
+    } else if is_keyboard_neighbor(a, b) {
+        0.45
+    } else if a.to_ascii_lowercase() == b.to_ascii_lowercase() {
+        0.8
+    } else {
+        1.6
+    }
+}
+
+fn weighted_levenshtein(query: &str, target: &str) -> f32 {
+    let q: Vec<char> = query.chars().collect();
+    let t: Vec<char> = target.chars().collect();
+    let mut dp = vec![vec![0.0; t.len() + 1]; q.len() + 1];
+
+    for i in 0..=q.len() {
+        dp[i][0] = i as f32 * 0.9;
+    }
+    for j in 0..=t.len() {
+        dp[0][j] = j as f32 * 1.35;
+    }
+
+    for i in 1..=q.len() {
+        for j in 1..=t.len() {
+            let delete_cost = dp[i - 1][j] + 0.9;
+            let insert_cost = dp[i][j - 1] + 1.35;
+            let substitute_cost = dp[i - 1][j - 1] + substitution_cost(q[i - 1], t[j - 1]);
+
+            let transposition_cost = if i > 1 && j > 1 && q[i - 1] == t[j - 2] && q[i - 2] == t[j - 1] {
+                dp[i - 2][j - 2] + 0.55
+            } else {
+                f32::INFINITY
+            };
+
+            dp[i][j] = delete_cost.min(insert_cost).min(substitute_cost).min(transposition_cost);
+        }
+    }
+
+    dp[q.len()][t.len()]
+}
+
+fn subsequence_score(query: &str, target: &str) -> f32 {
+    if query.is_empty() {
+        return 1_000_000.0;
+    }
+    if query.len() > target.len() + 2 {
+        return 0.0;
+    }
+
+    let target_chars: Vec<char> = target.chars().collect();
+    let mut target_idx = 0usize;
+    let mut matched = 0usize;
+
+    for ch in query.chars() {
+        while target_idx < target_chars.len() && target_chars[target_idx] != ch {
+            target_idx += 1;
+        }
+        if target_idx == target_chars.len() {
+            return 0.0;
+        }
+        matched += 1;
+        target_idx += 1;
+    }
+
+    let coverage = matched as f32 / query.len() as f32;
+    let length_penalty = (target.len() as f32 * 12.0);
+    22_000.0 * coverage - length_penalty + 3_500.0
+}
+
+pub fn fuzzy_score(query: &str, target: &str) -> f32 {
+    let q = normalize_match_text(query);
+    let t = normalize_match_text(target);
+
+    if q.is_empty() {
+        return 1_000_000.0;
+    }
+    if t.is_empty() {
+        return 0.0;
+    }
+    if q == t {
+        return 100_000.0;
+    }
+    if t.starts_with(&q) {
+        return 60_000.0 - (t.len() as f32 * 12.0);
+    }
+
+    let subseq = subsequence_score(&q, &t);
+    if subseq > 0.0 {
+        return subseq;
+    }
+
+    if q.len() > t.len() + 3 {
+        return 0.0;
+    }
+
+    let dist = weighted_levenshtein(&q, &t);
+    let score = 50_000.0 / (1.0 + dist);
+    if score <= 0.0 {
+        return 0.0;
+    }
+
+    let extra_penalty = ((q.len() as i32 - t.len() as i32).max(0) as f32) * 3_000.0;
+    score - extra_penalty
+}
+
 pub fn update_span (paragraphs: &mut HashMap<String, Span>, data: PartialMsg) {
     // Extract the right paragraph or create a new one
     // Update it with updated data
@@ -179,6 +320,26 @@ pub fn update_span (paragraphs: &mut HashMap<String, Span>, data: PartialMsg) {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::fuzzy_score;
+
+    #[test]
+    fn handles_short_keyboard_friendly_queries() {
+        assert!(fuzzy_score("vsc", "Visual Studio Code") > fuzzy_score("vsc", "Firefox"));
+        assert!(fuzzy_score("br", "Brave Browser") > fuzzy_score("br", "Firefox"));
+        assert!(fuzzy_score("term", "Terminal") > fuzzy_score("term", "Thunderbird"));
+        assert!(fuzzy_score("vscode", "Visual Studio Code") > fuzzy_score("vscode", "Games"));
+    }
+
+    #[test]
+    fn prefers_missing_char_over_extra_char() {
+        let missing = fuzzy_score("vscd", "Visual Studio Code");
+        let extra = fuzzy_score("vscodee", "Visual Studio Code");
+        assert!(missing > extra);
+    }
+}
+
 pub fn run_ui(show_icons: bool, t0: Instant) -> io::Result<()> {
     let mut t1: Option<Instant> = None;
     let mut t2: Option<Instant> = None;
@@ -230,9 +391,25 @@ pub fn run_ui(show_icons: bool, t0: Instant) -> io::Result<()> {
             update_span(&mut spans, data);
         }
 
-        let filtered: Vec<_> = apps_entries.iter()
-            .filter(|a| a.name.to_lowercase().contains(&filter.to_lowercase()))
-            .collect();
+        let filtered: Vec<_> = apps_entries
+            .iter()
+            .map(|app| {
+                let score = fuzzy_score(&filter, &app.name);
+                (score, app)
+            })
+            .filter(|(score, _)| *score > 0.0)
+            .collect::<Vec<_>>();
+
+        let filtered: Vec<_> = {
+            let mut filtered = filtered;
+            filtered.sort_by(|(left_score, left_app), (right_score, right_app)| {
+                right_score
+                    .partial_cmp(left_score)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+                    .then_with(|| right_app.name.len().cmp(&left_app.name.len()))
+            });
+            filtered.into_iter().map(|(_, app)| app).collect()
+        };
 
         let tsize = terminal.size().unwrap();
         terminal.draw(|f| {
