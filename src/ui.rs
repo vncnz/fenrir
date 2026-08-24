@@ -160,16 +160,20 @@ pub fn update_span (paragraphs: &mut HashMap<String, Span>, data: PartialMsg) {
                     let mut sp = "".to_string();
                     // log_to_file(format!("{:?}", b));
                     for dev in b.devices.clone().iter() { // .filter(|dv| dv.is_bluetooth) {
-                        let icon = match dev.kind {
-                            UPowerDeviceKind::Mouse => "󰦋",
-                            UPowerDeviceKind::Phone => if dev.is_bluetooth { "󱆏" } else { "󰏲" },
-                            UPowerDeviceKind::Tablet => "",
-                            UPowerDeviceKind::RemoteControl => "󰻅",
-                            UPowerDeviceKind::Speakers => "󰦢",
-                            UPowerDeviceKind::Headphones => "󰥰",
-                            UPowerDeviceKind::GamingInput => "󱤙",
-                            UPowerDeviceKind::Keyboard => "󰌌",
-                            _ => "󰂱"
+                        let icon = match (&dev.kind, dev.is_bluetooth) {
+                            (UPowerDeviceKind::Mouse, true) => "󰦋",
+                            (UPowerDeviceKind::Mouse, false) => "󰍽",
+                            (UPowerDeviceKind::Phone, true) => "󰏳",
+                            (UPowerDeviceKind::Phone, false) => "󰏲",
+                            (UPowerDeviceKind::Tablet, _) => "",
+                            (UPowerDeviceKind::RemoteControl, _) => "󰻅",
+                            (UPowerDeviceKind::Speakers, _) => "󰦢",
+                            (UPowerDeviceKind::Headphones, true) => "󰥰",
+                            (UPowerDeviceKind::Headset, true) => "󰥰",
+                            (UPowerDeviceKind::GamingInput, _) => "󱤙",
+                            (UPowerDeviceKind::Keyboard, _) => "󰌌",
+                            (_, true) => "󰂱",
+                            (_, false) => "󰾰"
                         };
                         let prev = format!("{}", sp);
                         sp = format!("{} [{} {:.0}%]", prev, icon, dev.percentage);
