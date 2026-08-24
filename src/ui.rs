@@ -1,8 +1,9 @@
-use crate::app::{load_app_entries, AppEntry};
+use crate::app::{AppEntry, LaunchHistory, load_app_entries, load_launch_history, prune_launch_history, record_app_launch, save_launch_history, sort_app_entries_by_launch_history};
 use crate::data::{BluetoothStats, PartialMsg, RatatoskrSocket, UPowerDeviceKind};
 // use crate::data_sources::read_ratatoskr;
 use crate::utils::{get_color_gradient, log_to_file};
 
+use chrono::Duration;
 use ratatui::{
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout},
@@ -17,35 +18,51 @@ use serde::Deserialize;
 use std::{io, time::Instant};
 use std::process::{Command, Stdio};
 use std::fs::OpenOptions;
+use std::path::PathBuf;
 use regex::Regex;
 use std::collections::HashMap;
 
 // use chrono::Local;
 
 
-pub fn launch_detached(app: &AppEntry) {
-    // let exec = &app.exec;
-    let re = Regex::new(r"%[UufFdDnNickvm]").unwrap();
-    let exec = re.replace_all(&app.exec, "").to_string();
+use std::os::unix::process::CommandExt;
 
-    // Log file in caso di errori
+pub fn launch_detached(app: &AppEntry) {
+    let re = Regex::new(r"%[UufFdDnNickvm]").unwrap();
+    let exec = re.replace_all(&app.exec, "").into_owned();
+
+    // Open log file safely
     let log_file = OpenOptions::new()
         .create(true)
         .append(true)
-        .open("/tmp/fenrir-launcher.log")
-        .unwrap_or_else(|_| std::fs::File::create("/dev/null").unwrap());
+        .open("/tmp/fenrir.log")
+        .unwrap_or_else(|_| OpenOptions::new().write(true).open("/dev/null").unwrap());
 
-    let result = Command::new("setsid")
-        .arg("sh")
-        .arg("-c")
-        .arg(&exec)
-        .stdin(Stdio::null())
-        .stdout(Stdio::from(log_file.try_clone().unwrap()))
-        .stderr(Stdio::from(log_file))
-        .spawn();
+    let stderr_file = log_file.try_clone().unwrap();
 
-    if let Err(e) = result {
-        eprintln!("Failed to launch '{}': {}", exec, e);
+    let mut cmd = Command::new("sh");
+    cmd.arg("-c").arg(format!("exec {}", exec))
+       .stdin(Stdio::null())
+       .stdout(Stdio::from(log_file))
+       .stderr(Stdio::from(stderr_file));
+
+    // SAFETY: libc::setsid() is an async-signal-safe POSIX system call
+    unsafe {
+        cmd.pre_exec(|| {
+            libc::setsid();
+            Ok(())
+        });
+    }
+
+    match cmd.spawn() {
+        Ok(_child) => {
+            // Do NOT call wait() on _child. 
+            // Letting _child go out of scope without waiting drops the Rust handle
+            // while leaving the spawned process detached in its own session.
+        }
+        Err(e) => {
+            eprintln!("Failed to launch '{}': {}", exec, e);
+        }
     }
 }
 
@@ -211,6 +228,10 @@ pub fn run_ui(show_icons: bool, t0: Instant) -> io::Result<()> {
     let mut apps_entries: Vec<AppEntry> = vec![];
     let mut sock = RatatoskrSocket::new("/tmp/ratatoskr.sock");
     let mut spans: HashMap<String, Span> = HashMap::new();
+    let uri = if let Ok(path) = std::env::var("XDG_STATE_HOME") { path } else { shellexpand::tilde("~/.local/state/fenrir/history.json").to_string() };
+    log_to_file(format!("History path {uri}"));
+    let history_path = PathBuf::from(uri); // "/tmp/fenrir-launch-history.json");
+    let mut launch_history: LaunchHistory = load_launch_history(&history_path).unwrap_or_default();
 
     // let mut draws: i64 = 0;
     // let mut loops: i64 = 0;
@@ -230,7 +251,8 @@ pub fn run_ui(show_icons: bool, t0: Instant) -> io::Result<()> {
             update_span(&mut spans, data);
         }
 
-        let filtered: Vec<_> = apps_entries.iter()
+        let filtered: Vec<_> = sort_app_entries_by_launch_history(&apps_entries, &launch_history, 30)
+            .into_iter()
             .filter(|a| a.name.to_lowercase().contains(&filter.to_lowercase()))
             .collect();
 
@@ -345,13 +367,11 @@ pub fn run_ui(show_icons: bool, t0: Instant) -> io::Result<()> {
                     KeyCode::Down => { if selected + 1 < filtered.len() { selected += 1; } },
                     KeyCode::Enter => {
                         if let Some(app) = filtered.get(selected) {
-                            /* let _ = Command::new("sh")
-                                .arg("-c")
-                                .arg(&app.exec)
-                                .spawn(); */
+                            record_app_launch(app, &mut launch_history, chrono::Utc::now());
+                            prune_launch_history(&mut launch_history, Duration::days(30));
+                            let _ = save_launch_history(&launch_history, &history_path);
                             launch_detached(app);
-                            std::thread::sleep(std::time::Duration::from_millis(600));
-
+                            // std::thread::sleep(std::time::Duration::from_millis(600));
                             break;
                         }
                     },

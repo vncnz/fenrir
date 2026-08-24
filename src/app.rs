@@ -1,6 +1,10 @@
 // use std::fs;
 use std::path::{PathBuf};
 use std::error::Error;
+use chrono::{DateTime, Duration, Utc};
+use serde::{Deserialize, Serialize};
+use std::fs;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct AppEntry {
@@ -12,6 +16,89 @@ pub struct AppEntry {
 }
 
 use freedesktop_desktop_entry::{default_paths, get_languages_from_env, Iter};
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct LaunchStats {
+    pub total_launches: u64,
+    pub launches: Vec<String>,
+}
+
+pub type LaunchHistory = HashMap<String, LaunchStats>;
+
+fn app_key(app: &AppEntry) -> String {
+    format!("{}::{}", app.exec, app.name)
+}
+
+pub fn record_app_launch(app: &AppEntry, history: &mut LaunchHistory, at: DateTime<Utc>) {
+    let key = app_key(app);
+    let stats = history.entry(key).or_default();
+    stats.total_launches += 1;
+    stats.launches.push(at.to_rfc3339());
+}
+
+pub fn prune_launch_history(history: &mut LaunchHistory, max_age: Duration) {
+    let cutoff = Utc::now() - max_age;
+    for stats in history.values_mut() {
+        stats.launches.retain(|ts| {
+            DateTime::parse_from_rfc3339(ts).ok().map(|parsed| parsed.with_timezone(&Utc) >= cutoff).unwrap_or(false)
+        });
+        stats.total_launches = stats.launches.len() as u64;
+    }
+    history.retain(|_, stats| !stats.launches.is_empty());
+}
+
+pub fn sort_app_entries_by_launch_history(
+    entries: &[AppEntry],
+    history: &LaunchHistory,
+    recent_window_days: i64,
+) -> Vec<AppEntry> {
+    let cutoff = Utc::now() - Duration::days(recent_window_days);
+    let mut ranked: Vec<(f64, AppEntry)> = entries
+        .iter()
+        .cloned()
+        .map(|entry| {
+            let key = app_key(&entry);
+            let stats = history.get(&key).cloned().unwrap_or_default();
+            let recent_hits = stats
+                .launches
+                .iter()
+                .filter(|ts| {
+                    DateTime::parse_from_rfc3339(ts).ok().map(|parsed| parsed.with_timezone(&Utc) >= cutoff).unwrap_or(false)
+                })
+                .count() as f64;
+            let score = recent_hits * 10.0 + stats.total_launches as f64;
+            (score, entry)
+        })
+        .collect();
+
+    ranked.sort_by(|left, right| {
+        right.0.partial_cmp(&left.0).unwrap_or(std::cmp::Ordering::Equal)
+    });
+
+    ranked.into_iter().map(|(_, entry)| entry).collect()
+}
+
+pub fn save_launch_history(history: &LaunchHistory, path: &PathBuf) -> Result<(), Box<dyn Error>> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    let temp = path.with_extension("json.tmp");
+    let data = serde_json::to_string_pretty(history)?;
+    fs::write(&temp, data)?;
+    fs::rename(temp, path)?;
+    Ok(())
+}
+
+pub fn load_launch_history(path: &PathBuf) -> Result<LaunchHistory, Box<dyn Error>> {
+    if !path.exists() {
+        return Ok(LaunchHistory::new());
+    }
+    let data = fs::read_to_string(path)?;
+    if data.trim().is_empty() {
+        return Ok(LaunchHistory::new());
+    }
+    Ok(serde_json::from_str(&data)?)
+}
 
 pub fn load_app_entries() -> Result<Vec<AppEntry>, Box<dyn Error>> {
 
@@ -85,4 +172,57 @@ fn resolve_icon_path(icon_name: String) -> Option<PathBuf> {
     ];
 
     candidates.into_iter().map(PathBuf::from).find(|p| p.exists())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::{Duration, Utc};
+
+    #[test]
+    fn ranks_recently_used_apps_above_older_ones() {
+        let now = Utc::now();
+        let recent = AppEntry {
+            name: "Recent".into(),
+            exec: "recent".into(),
+            icon_path: None,
+            comment: "".into(),
+            terminal: false,
+        };
+        let old = AppEntry {
+            name: "Old".into(),
+            exec: "old".into(),
+            icon_path: None,
+            comment: "".into(),
+            terminal: false,
+        };
+
+        let mut history = HashMap::new();
+        record_app_launch(&recent, &mut history, now - Duration::days(2));
+        record_app_launch(&recent, &mut history, now - Duration::days(10));
+        record_app_launch(&old, &mut history, now - Duration::days(60));
+
+        let ranked = sort_app_entries_by_launch_history(&[old.clone(), recent.clone()][..], &history, 30);
+
+        assert_eq!(ranked[0].name, recent.name);
+        assert_eq!(ranked[1].name, old.name);
+    }
+
+    #[test]
+    fn records_launches_in_history() {
+        let app = AppEntry {
+            name: "Test".into(),
+            exec: "test".into(),
+            icon_path: None,
+            comment: "".into(),
+            terminal: false,
+        };
+
+        let mut history = HashMap::new();
+        record_app_launch(&app, &mut history, Utc::now());
+
+        let stats = history.get(&app_key(&app)).unwrap();
+        assert_eq!(stats.total_launches, 1);
+        assert_eq!(stats.launches.len(), 1);
+    }
 }
