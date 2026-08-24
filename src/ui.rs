@@ -22,6 +22,10 @@ use std::path::PathBuf;
 use regex::Regex;
 use std::collections::HashMap;
 
+use fuzzy_matcher::skim::SkimMatcherV2;
+use fuzzy_matcher::FuzzyMatcher;
+use strsim::damerau_levenshtein;
+
 // use chrono::Local;
 
 
@@ -236,6 +240,7 @@ pub fn run_ui(show_icons: bool, t0: Instant) -> io::Result<()> {
     log_to_file(format!("History path {uri}"));
     let history_path = PathBuf::from(uri); // "/tmp/fenrir-launch-history.json");
     let mut launch_history: LaunchHistory = load_launch_history(&history_path).unwrap_or_default();
+    let matcher = SkimMatcherV2::default();
 
     // let mut draws: i64 = 0;
     // let mut loops: i64 = 0;
@@ -255,10 +260,34 @@ pub fn run_ui(show_icons: bool, t0: Instant) -> io::Result<()> {
             update_span(&mut spans, data);
         }
 
-        let filtered: Vec<_> = sort_app_entries_by_launch_history(&apps_entries, &launch_history, 30)
+        /* let filtered: Vec<_> = sort_app_entries_by_launch_history(&apps_entries, &launch_history, 30)
             .into_iter()
             .filter(|a| a.name.to_lowercase().contains(&filter.to_lowercase()))
-            .collect();
+            .collect(); */
+        let filtered: Vec<_> = {
+            let q = filter.to_lowercase();
+            let sorted = sort_app_entries_by_launch_history(&apps_entries, &launch_history, 30);
+            if q.is_empty() {
+                sorted.into_iter().collect()
+            } else {
+                let mut exact: Vec<AppEntry> = Vec::new();
+                let mut fuzzy: Vec<AppEntry> = Vec::new();
+                for app in sorted.into_iter() {
+                    let name = app.name.to_lowercase();
+                    if name.starts_with(&q) {
+                        exact.push(app);
+                        continue;
+                    }
+                    if matcher.fuzzy_match(&name, &q).is_some()
+                        || name.split_whitespace().any(|tok| damerau_levenshtein(tok, &q) <= 2)
+                    {
+                        fuzzy.push(app);
+                    }
+                }
+                exact.extend(fuzzy);
+                exact
+            }
+        };
 
         let tsize = terminal.size().unwrap();
         terminal.draw(|f| {

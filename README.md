@@ -16,7 +16,8 @@ Information about system resources is collected from another process: Ratatoskr.
 Please note that this is a personal project, for personal use, developed in my (not so much) free time. You'll not find clean code or a flexible, modular system here. You'll find lots of experiments, abandoned ideas, dead code, temporary hacks and workarounds. Oh, and last but not least, I'm just learning both Rust and GTK. You've been warned.
 
 ## TODO
-- Insert weather information
+
+- ~~Insert weather information~~
 - ~~Full network information, like IP and networkname, on a dedicated row~~ Done!
 - ~~Fix resources information order~~ Done!
 - ~~Add battery ETA if available~~ Done!
