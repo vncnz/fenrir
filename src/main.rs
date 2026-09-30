@@ -26,13 +26,14 @@ struct Args {
     version: bool,
     
     /// Force not to use icons
-    #[arg(short, long, default_value_t = false)]
-    no_icons: bool,
-
-    /// Force to use icons
-    #[arg(short, long, default_value_t = false)]
-    force_icons: bool
-
+    #[arg(
+        short,
+        long,
+        num_args=0..=1,
+        default_missing_value = "true",
+        // action = clap::ArgAction::SetTrue
+    )]
+    icons: Option<bool>,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -63,12 +64,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         std::process::exit(0);
     }
 
-    let show_icons = if args.force_icons {
-        true
-    } else if args.no_icons {
-        false
-    } else {
-        std::env::var("KITTY_WINDOW_ID").is_ok()
+    let show_icons = match args.icons {
+        Some(enabled) => enabled,
+        None => std::env::var("KITTY_WINDOW_ID").is_ok()
     };
 
     // let apps_empty: Vec<AppEntry> = vec![];
