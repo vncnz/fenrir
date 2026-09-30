@@ -373,10 +373,10 @@ pub fn run_ui(show_icons: bool, t0: Instant) -> io::Result<()> {
 
             // Icon rendering (Kitty required)
             let mut config = viuer::Config::default();
-            config.x = tsize.width.saturating_sub(15) as u16 - 1;
+            config.x = tsize.width.saturating_sub(11) as u16 - 1;
             config.y = tsize.height.saturating_sub(7) as i16 - 1;
-            config.width = Some(14);
-            config.height = Some(6);
+            config.width = Some(10);
+            config.height = Some(4);
 
             if show_icons {
                 if let Some(app) = filtered.get(selected) {
