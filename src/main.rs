@@ -15,11 +15,29 @@ use std::env;
 use std::error::Error;
 
 use std::time::Instant;
-use clap::{crate_name, crate_version};
+use clap::{crate_name, crate_version, Parser};
+
+#[derive(Parser, Debug)]
+#[command(disable_version_flag = true)]
+struct Args {
+
+    /// Print version
+    #[arg(short, long)]
+    version: bool,
+    
+    /// Force not to use icons
+    #[arg(short, long, default_value_t = false)]
+    no_icons: bool,
+
+    /// Force to use icons
+    #[arg(short, long, default_value_t = false)]
+    force_icons: bool
+
+}
 
 fn main() -> Result<(), Box<dyn Error>> {
     let t0 = Instant::now();
-    let args: Vec<String> = env::args().collect();
+    /* let args: Vec<String> = env::args().collect();
 
     let print_version = args.contains(&"--version".to_string());
     if print_version {
@@ -33,6 +51,21 @@ fn main() -> Result<(), Box<dyn Error>> {
     let show_icons = if force_icons {
         true
     } else if no_icons {
+        false
+    } else {
+        std::env::var("KITTY_WINDOW_ID").is_ok()
+    };
+    */
+    let args = Args::parse();
+
+    if args.version {
+        println!("{} {}", crate_name!(), crate_version!());
+        std::process::exit(0);
+    }
+
+    let show_icons = if args.force_icons {
+        true
+    } else if args.no_icons {
         false
     } else {
         std::env::var("KITTY_WINDOW_ID").is_ok()
