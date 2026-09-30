@@ -8,9 +8,9 @@ Skoll is, in norse mythology, a wolf who chases the sun, causing eclipses. And i
 
 ![image](screenshots/high_mem_avg_crop.png)
 
-In the upper area, you can see information about your system health.
+The upper area provides a compact snapshot of the current system state.
 
-In the lower area, you find the launcher part: a filter and a box containing search results. For each result, you get name, command, description. If the app has an icon, it is painter in the lower-right corner.
+The lower area is the actual launcher: a filter and a box containing search results. For each result, you get name and the real command. If the app has an icon, it is painter in the lower-right corner. The last couple of lines of the TUI contains the description of the application selected currently.
 
 ## About this project
 
