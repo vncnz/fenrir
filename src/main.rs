@@ -15,10 +15,18 @@ use std::env;
 use std::error::Error;
 
 use std::time::Instant;
+use clap::{crate_name, crate_version};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let t0 = Instant::now();
     let args: Vec<String> = env::args().collect();
+
+    let print_version = args.contains(&"--version".to_string());
+    if print_version {
+        println!("{} {}", crate_name!(), crate_version!());
+        std::process::exit(0);
+    }
+
     let force_icons = args.contains(&"--force-icons".to_string());
     let no_icons = args.contains(&"--no-icons".to_string());
 
