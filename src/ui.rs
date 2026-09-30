@@ -4,6 +4,7 @@ use crate::data::{BluetoothStats, PartialMsg, RatatoskrSocket, UPowerDeviceKind}
 use crate::utils::{get_color_gradient, log_to_file};
 
 use chrono::Duration;
+use ratatui::widgets::Wrap;
 use ratatui::{
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout},
@@ -301,6 +302,7 @@ pub fn run_ui(show_icons: bool, t0: Instant) -> io::Result<()> {
                     Constraint::Length(1),
                     Constraint::Length(1),
                     Constraint::Min(0),
+                    Constraint::Length(2),
                 ])
                 .split(f.area());
 
@@ -339,6 +341,13 @@ pub fn run_ui(show_icons: bool, t0: Instant) -> io::Result<()> {
                 f.render_widget(Paragraph::new(""), chunks[1]);
             }
 
+            if let Some(app) = filtered.get(selected) {
+                // f.render_widget(Span::raw(&app.comment), chunks[5]);
+                let span = Span::styled(format!(" {}", app.comment), Style::default().fg(Color::Rgb(168,168,168)));
+                let par = Paragraph::new(span).wrap(Wrap { trim: true });
+                f.render_widget(par, chunks[5]);
+            }
+
             let input = Paragraph::new(format!("Filter: {}", filter));
             f.render_widget(input, chunks[3]);
 
@@ -348,8 +357,8 @@ pub fn run_ui(show_icons: bool, t0: Instant) -> io::Result<()> {
                     Line::from(vec![
                         Span::styled(if a.terminal { "" } else { "" }, Style::default().fg(Color::Gray)),
                         Span::styled(format!(" {}", a.name), Style::default()),
-                        Span::styled(format!(" {}", a.exec), Style::default().fg(Color::Yellow)),
-                        Span::styled(format!(" {}", a.comment), Style::default().fg(Color::Rgb(128,128,128))),
+                        Span::styled(format!(" {}", a.exec), Style::default().fg(Color::Rgb(128,128,128))),
+                        // Span::styled(format!(" {}", a.comment), Style::default().fg(Color::Rgb(128,128,128))),
                     ])
                 ))
                 .collect();
