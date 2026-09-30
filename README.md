@@ -6,7 +6,7 @@ Skoll is, in norse mythology, a wolf who chases the sun, causing eclipses. And i
 
 ## UI preview
 
-![image](screenshots/high_mem_avg_crop.png)
+![image](screenshots/preview_crop.png)
 
 The upper area provides a compact snapshot of the current system state.
 
@@ -23,25 +23,17 @@ Information about system resources is collected from another process: Ratatoskr.
 
 ## Screenshots
 
-No warnings, no filter
-![image](screenshots/normal_crop.png)
+High avgload, "cod" in filter:
+![image](screenshots/high_avg.png)
 
-No warnings, filter with "fire"
-![image](screenshots/normal_firefox_crop.png)
+Slightly high memory usage and temperature, empty filter:
+![image](screenshots/medium_high_memory_temp_crop.png)
 
-High memory usage, high avgload, medium-high volume:
-![image](screenshots/high_mem_avg_vol_crop.png)
+Very high memory usage and high temperature:
+![image](screenshots/very_high_memory_temp_crop.png)
 
-Medium-high memory, medium avgload, muted:
-![image](screenshots/high_memory_crop.png)
-
-Medium-high avgload, medium memory, medium temp:
-![image](screenshots/high_temp_firefox_crop.png)
-
-With bluetooth headphones connected (headphone battery 100%):
+With bluetooth headphones connected (headphone battery 100%) and "cal" in filter:
 ![image](screenshots/with_headphones_crop.png)
-
-
 
 ## Note
 
@@ -53,6 +45,5 @@ Please note that this is a personal project, for personal use, developed in my (
 - ~~Full network information, like IP and networkname, on a dedicated row~~ Done!
 - ~~Fix resources information order~~ Done!
 - ~~Add battery ETA if available~~ Done!
-- Create a dedicated area for selected executable properties and icon?
 - ~~Fuzzy search~~ Done!
 - ~~History~~ Done!
